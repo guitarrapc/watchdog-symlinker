@@ -1,54 +1,70 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
 
-	"github.com/gin-gonic/gin"
+	"github.com/kardianos/service"
 )
 
+var logger service.Logger
+
 func main() {
-	if len(os.Args) != 4 {
-		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-		fmt.Fprintf(os.Stderr, `Usage: %s filenamePattern FolderToWatch symlinkName
-Sample: %s ^.*.log$ %s current.log
-`, os.Args[0], os.Args[0], dir)
-		os.Exit(1)
+	svcConfig := &service.Config{
+		Name:        "watchdog-symlinker",
+		DisplayName: "watchdog-symlinker",
+		Description: "watch folder and create symlink to the latest file.",
 	}
 
+	// arguments
+	var command string
 	watchdog := &watchdog{}
-	watchdog.pattern = os.Args[1]
-	watchdog.watchFolder = os.Args[2]
-	watchdog.symlinkName = os.Args[3]
-	watchdog.dest = path.Join(watchdog.watchFolder, watchdog.symlinkName)
-
-	// initialize
-	err := watchdog.initialize()
-	if err != nil {
-		fmt.Println(err)
+	switch len(os.Args) {
+	case 2:
+		// command line service start/stop/uninstall call
+		command = os.Args[1]
+	case 4:
+		// service/command line invokation
+		watchdog.pattern = os.Args[1]
+		watchdog.watchFolder = os.Args[2]
+		watchdog.symlinkName = os.Args[3]
+		watchdog.dest = path.Join(watchdog.watchFolder, watchdog.symlinkName)
+	case 5:
+		// command line service install called (also start/stop/uninstall can work.)
+		command = os.Args[1]
+		svcConfig.Arguments = []string{os.Args[2], os.Args[3], os.Args[4]}
+	default:
+		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+		logger.Infof(`Usage: %s filenamePattern FolderToWatch symlinkName\nSample: %s ^.*.log$ %s current.log\n`, os.Args[0], os.Args[0], dir)
 		os.Exit(1)
 	}
 
-	// TODO: Windows Service として実行
+	// create service
+	s, err := service.New(watchdog, svcConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// TODO: go-datadog sdk で metrics を直接投げる
-	// MEMO: jobrunner で60s に一回実行。
+	// setup the logger
+	errs := make(chan error, 5)
+	logger, err = s.Logger(errs)
+	if err != nil {
+		log.Fatal()
+	}
 
-	// TODO: health check は外す
-	// health check
-	gin.SetMode(gin.ReleaseMode)
-	routes := gin.Default()
-	routes.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "health")
-	})
-	go func() {
-		// localhost 以外は拒否
-		routes.Run("127.0.0.1:8080")
-	}()
+	// service action
+	if command != "" {
+		err = service.Control(s, os.Args[1])
+		if err != nil {
+			logger.Warning("Failed (%s) : %s\n", os.Args[1], err)
+			return
+		}
+		logger.Info("Succeeded (%s)\n", os.Args[1])
+		return
+	}
 
-	// file watcher
-	watchdog.runWatcher()
+	// Run in terminal
+	s.Run()
 }

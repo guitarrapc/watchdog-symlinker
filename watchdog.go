@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"regexp"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/kardianos/service"
 	"github.com/radovskyb/watcher"
 )
 
@@ -18,6 +21,7 @@ type latestFile struct {
 }
 
 type watchdog struct {
+	exit        chan struct{} // for Windows Service
 	pattern     string
 	watchFolder string
 	symlinkName string
@@ -25,30 +29,89 @@ type watchdog struct {
 	latest      latestFile
 }
 
+func (e *watchdog) run() error {
+
+	// do anything
+	// initialize
+	err := e.initialize()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// TODO: go-datadog sdk で metrics を直接投げる
+	// MEMO: jobrunner で60s に一回実行。
+
+	// TODO: health check は外す
+	// health check
+	gin.SetMode(gin.ReleaseMode)
+	routes := gin.Default()
+	routes.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "health")
+	})
+	go func() {
+		// localhost 以外は拒否
+		routes.Run("127.0.0.1:8080")
+	}()
+
+	// file watcher
+	e.runWatcher()
+
+	// monitor stopped
+	ticker := time.NewTicker(1 * time.Second)
+	for {
+		select {
+		case tm := <-ticker.C:
+			logger.Infof("Still running at %v", tm)
+		case <-e.exit:
+			ticker.Stop()
+			logger.Info("watchdog-symlinker Stop ...")
+			return nil
+		}
+	}
+}
+
+func (e *watchdog) Start(s service.Service) error {
+	if service.Interactive() {
+		logger.Info("Running in terminal.")
+	} else {
+		logger.Info("Running under service manager.")
+	}
+	e.exit = make(chan struct{})
+
+	go e.run()
+	return nil
+}
+
+func (e *watchdog) Stop(s service.Service) error {
+	close(e.exit)
+	return nil
+}
+
 func (e *watchdog) initialize() (err error) {
 	// check folder exists
 	if !anyfileExists(e.watchFolder) {
-		fmt.Printf("%s is empty, skip initialize symlink.\n", e.watchFolder)
+		logger.Infof("%s is empty, skip initialize symlink.\n", e.watchFolder)
 		return nil
 	}
 
 	// remove exisiting symlink (because re-link to latest log file, existing is waste)
 	if symlinkExists(e.dest) {
-		fmt.Printf("Removing current Symlink %s.\n", e.dest)
+		logger.Infof("Removing current Symlink %s.\n", e.dest)
 		deleteSymlink(e.dest)
 	} else {
-		fmt.Printf("Symlink %s not found.\n", e.dest)
+		logger.Infof("Symlink %s not found.\n", e.dest)
 	}
 
 	// list files
-	fmt.Println("Checking latest file.")
+	logger.Infof("Checking latest file.")
 	latest, err := getLatestFile(e.watchFolder, e.pattern)
 	if err != nil {
 		return err
 	}
 	// map to latest
 	if latest.path != "" {
-		fmt.Printf("Found latest file %s, start try link.\n", latest.path)
+		logger.Infof("Found latest file %s.\n", latest.path)
 		makeSymlink(latest.path, e.dest)
 	}
 	return
@@ -68,7 +131,7 @@ func (e *watchdog) runWatcher() {
 			select {
 			case event := <-w.Event:
 				if event.Name() != e.symlinkName {
-					fmt.Println(event)
+					logger.Info(event)
 					source := path.Join(e.watchFolder, event.Name())
 					// replace symlink
 					replaceSymlink(source, e.dest)
@@ -85,14 +148,15 @@ func (e *watchdog) runWatcher() {
 		log.Fatalln(err)
 	}
 
+	logger.Info("List current files in watchfolder.")
 	for path, f := range w.WatchedFiles() {
 		if !f.IsDir() {
-			fmt.Printf("%s: %s\n", path, f.Name())
+			logger.Infof(" * %s: %s\n", path, f.Name())
 		}
 	}
 
 	go func() {
-		fmt.Printf("Filewatcher started: %s\n", e.watchFolder)
+		logger.Infof("Filewatcher started: %s\n", e.watchFolder)
 		w.Wait()
 	}()
 
@@ -109,17 +173,17 @@ func replaceSymlink(filePath string, symlinkPath string) {
 func deleteSymlink(symlinkPath string) {
 	if _, err := os.Lstat(symlinkPath); err == nil {
 		if err := os.Remove(symlinkPath); err != nil {
-			fmt.Printf("failed to unlink: %+v\n", err)
+			logger.Infof("failed to unlink: %+v\n", err)
 		}
 	} else if os.IsNotExist(err) {
-		fmt.Printf("symlink not found, no need to unlink.")
+		logger.Infof("symlink not found, no need to unlink.")
 	}
 }
 func makeSymlink(filePath string, symlinkPath string) {
-	fmt.Printf("try link %s to %s\n", filePath, symlinkPath)
+	logger.Infof("link %s with source %s\n", symlinkPath, filePath)
 	err := os.Symlink(filePath, symlinkPath)
 	if err != nil {
-		fmt.Printf("Failed to create symlink. %+v\n", err)
+		logger.Infof("Failed to create symlink. %+v\n", err)
 	}
 }
 
@@ -141,7 +205,7 @@ func getLatestFile(dir string, pattern string) (latest latestFile, err error) {
 		return latest, err
 	}
 	if len(files) == 0 {
-		return latest, fmt.Errorf("no file exists")
+		return latest, logger.Errorf("no file exists")
 	}
 	r := regexp.MustCompile(pattern)
 	for _, fi := range files {
