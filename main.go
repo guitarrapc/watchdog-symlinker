@@ -18,19 +18,22 @@ func main() {
 		Description: "watch folder and create symlink to the latest file.",
 	}
 
-	// arguments
 	var command string
-	watchdog := &watchdog{}
+	w := &watchdog{}
+	w.filewatcher = fileWatcher{}
+	w.healthcheck = httpHealthcheck{}
+
+	// arguments
 	switch len(os.Args) {
 	case 2:
 		// command line service start/stop/uninstall call
 		command = os.Args[1]
 	case 4:
 		// service/command line invokation
-		watchdog.pattern = os.Args[1]
-		watchdog.watchFolder = os.Args[2]
-		watchdog.symlinkName = os.Args[3]
-		watchdog.dest = path.Join(watchdog.watchFolder, watchdog.symlinkName)
+		w.filewatcher.pattern = os.Args[1]
+		w.filewatcher.watchFolder = os.Args[2]
+		w.filewatcher.symlinkName = os.Args[3]
+		w.filewatcher.dest = path.Join(w.filewatcher.watchFolder, w.filewatcher.symlinkName)
 	case 5:
 		// command line service install called (also start/stop/uninstall can work.)
 		command = os.Args[1]
@@ -42,7 +45,7 @@ func main() {
 	}
 
 	// create service
-	s, err := service.New(watchdog, svcConfig)
+	s, err := service.New(w, svcConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
