@@ -1,0 +1,45 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"regexp"
+	"time"
+
+	"github.com/bamzi/jobrunner"
+	"github.com/gin-gonic/gin"
+	"github.com/radovskyb/watcher"
+)
+
+type FileWatcher struct {
+}
+
+func main() {
+	// jobrunner
+	jobrunner.Start()
+	jobrunner.Schedule("@every 5s", FileWatcher{})
+
+	// gin
+	gin.SetMode(gin.ReleaseMode)
+	routes := gin.Default()
+	routes.GET("/jobrunner/json", JobJSON)
+
+	routes.LoadHTMLGlob("../bamzi/jobrunner/views/Status.html")
+	routes.GET("/", JobHtml)
+
+	routes.Run(":8080")
+}
+
+func JobJSON(c *gin.Context) {
+	c.JSON(http.StatusOK, jobrunner.StatusJson())
+}
+
+func JobHtml(c *gin.Context) {
+	// Returns the template data pre-parsed
+	c.HTML(http.StatusOK, "Status.html", jobrunner.StatusPage())
+}
+
+func (e FileWatcher) Run() {
+	fmt.Println("Run FileWatcher!")
+}
