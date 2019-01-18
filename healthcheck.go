@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
@@ -37,7 +36,7 @@ func (*healthcheckhttp) run(ctx context.Context, exit chan<- error) (err error) 
 func (e *healthcheckstatsd) run(ctx context.Context, exit chan<- error) (err error) {
 	c, err := statsd.New("127.0.0.1:8125")
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err)
 		return err
 	}
 
