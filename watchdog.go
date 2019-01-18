@@ -8,10 +8,10 @@ import (
 )
 
 type watchdog struct {
-	exit        chan struct{}
-	exitError   chan error
-	filewatcher fileWatcher
-	healthcheck healthcheck
+	exit         chan struct{}
+	exitError    chan error
+	filewatcher  fileWatcher
+	healthchecks []healthcheck
 }
 
 func (w *watchdog) run() (err error) {
@@ -21,16 +21,17 @@ func (w *watchdog) run() (err error) {
 	defer cancel()
 
 	// TODO: http health check は外す
-	// TODO: go-datadog sdk で metrics を直接投げる
-	// MEMO: jobrunner で60s に一回実行。
 	// healthcheck
-	go w.healthcheck.run(ctx, w.exitError)
+	for _, healthcheck := range w.healthchecks {
+		go healthcheck.run(ctx, w.exitError)
+	}
 
 	// filewatcher
 	go w.filewatcher.run(ctx, w.exitError)
 
 	// monitor stopped
 	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case tm := <-ticker.C:

@@ -40,3 +40,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/kardianos/service"
+
+[[constraint]]
+  name = "github.com/DataDog/datadog-go"
+  version = "2.1.0"
