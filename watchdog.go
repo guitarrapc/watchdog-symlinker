@@ -20,7 +20,6 @@ func (w *watchdog) run() (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// TODO: http health check は外す
 	// healthcheck
 	for _, healthcheck := range w.healthchecks {
 		go healthcheck.run(ctx, w.exitError)

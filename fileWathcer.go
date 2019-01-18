@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"regexp"
@@ -39,9 +38,11 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- error) {
 	w := watcher.New()
 	w.SetMaxEvents(1)
 	w.FilterOps(watcher.Create)
+	defer w.Close()
 
+	// add watch folder
 	if err := w.Add(e.watchFolder); err != nil {
-		log.Fatalln(err)
+		logger.Error(err)
 		exit <- err
 	}
 
@@ -64,10 +65,10 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- error) {
 				if event.Name() != e.symlinkName {
 					logger.Info(event)
 					source := path.Join(e.watchFolder, event.Name())
-					replaceSymlink(source, e.dest)
+					e.replaceSymlink(source, e.dest)
 				}
 			case err := <-w.Error:
-				log.Fatalln(err)
+				logger.Error(err)
 				exit <- err
 			case <-w.Closed:
 				return
@@ -75,52 +76,53 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- error) {
 		}
 	}()
 
+	go func() {
+		w.Wait()
+	}()
+
 	logger.Infof("Filewatcher starting ... %s\n", e.watchFolder)
-	if err := w.Start(time.Millisecond * 1000); err != nil {
-		log.Fatalln(err)
+	if err := w.Start(time.Second * 1); err != nil {
+		logger.Error(err)
 		exit <- err
 	}
-
-	logger.Infof("Filewatcher waiting ... \n")
-	w.Wait()
 	return
 }
 
 func (e *fileWatcher) initialize() (err error) {
 	// check folder exists
-	if !anyfileExists(e.watchFolder) {
+	if !e.anyfileExists(e.watchFolder) {
 		logger.Infof("%s is empty, skip initialize symlink ...\n", e.watchFolder)
 		return nil
 	}
 
 	// remove exisiting symlink (because re-link to latest log file, existing is waste)
-	if symlinkExists(e.dest) {
+	if e.symlinkExists(e.dest) {
 		logger.Infof("Removing current Symlink: %s\n", e.dest)
-		deleteSymlink(e.dest)
+		e.deleteSymlink(e.dest)
 	} else {
 		logger.Infof("Symlink %s not found ...\n", e.dest)
 	}
 
 	// list files
 	logger.Infof("Checking latest file ...\n")
-	latest, err := getLatestFile(e.watchFolder, e.pattern)
+	latest, err := e.getLatestFile(e.watchFolder, e.pattern)
 	if err != nil {
 		return err
 	}
 	// map to latest
 	if latest.path != "" {
 		logger.Infof("Found latest file: %s\n", latest.path)
-		makeSymlink(latest.path, e.dest)
+		e.makeSymlink(latest.path, e.dest)
 	}
 	return
 }
 
-func replaceSymlink(filePath string, symlinkPath string) {
-	deleteSymlink(symlinkPath)
-	makeSymlink(filePath, symlinkPath)
+func (e *fileWatcher) replaceSymlink(filePath string, symlinkPath string) {
+	e.deleteSymlink(symlinkPath)
+	e.makeSymlink(filePath, symlinkPath)
 }
 
-func deleteSymlink(symlinkPath string) {
+func (e *fileWatcher) deleteSymlink(symlinkPath string) {
 	if _, err := os.Lstat(symlinkPath); err == nil {
 		if err := os.Remove(symlinkPath); err != nil {
 			logger.Infof("failed to unlink: %+v\n", err)
@@ -129,7 +131,7 @@ func deleteSymlink(symlinkPath string) {
 		logger.Infof("symlink not found, no need to unlink ...")
 	}
 }
-func makeSymlink(filePath string, symlinkPath string) {
+func (e *fileWatcher) makeSymlink(filePath string, symlinkPath string) {
 	logger.Infof("link %s with source %s\n", symlinkPath, filePath)
 	err := os.Symlink(filePath, symlinkPath)
 	if err != nil {
@@ -137,7 +139,7 @@ func makeSymlink(filePath string, symlinkPath string) {
 	}
 }
 
-func anyfileExists(dir string) bool {
+func (e *fileWatcher) anyfileExists(dir string) bool {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return false
@@ -145,7 +147,7 @@ func anyfileExists(dir string) bool {
 	return len(files) > 0
 }
 
-func getLatestFile(dir string, pattern string) (latest latestFile, err error) {
+func (e *fileWatcher) getLatestFile(dir string, pattern string) (latest latestFile, err error) {
 	latest.modTime = time.Time{}
 	latest.path = ""
 	err = nil
@@ -172,12 +174,12 @@ func getLatestFile(dir string, pattern string) (latest latestFile, err error) {
 	return
 }
 
-func fileExists(filename string) bool {
+func (e *fileWatcher) fileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil
 }
 
-func symlinkExists(linkPath string) bool {
+func (e *fileWatcher) symlinkExists(linkPath string) bool {
 	info, err := os.Lstat(linkPath)
 	if err != nil {
 		return false
