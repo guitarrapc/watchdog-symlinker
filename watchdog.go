@@ -1,35 +1,33 @@
 package main
 
 import (
-	"fmt"
-	"os"
+	"context"
 	"time"
 
 	"github.com/kardianos/service"
 )
 
 type watchdog struct {
-	exit        chan error // for Windows Service
+	exit        chan struct{}
+	exitError   chan error
 	filewatcher fileWatcher
 	healthcheck httpHealthcheck
 }
 
-func (e *watchdog) run() (err error) {
+func (w *watchdog) run() (err error) {
 
-	// healthcheck
+	// context : goroutine leak prevention
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// TODO: http health check は外す
 	// TODO: go-datadog sdk で metrics を直接投げる
 	// MEMO: jobrunner で60s に一回実行。
-	go func() {
-		e.exit <- e.healthcheck.run()
-	}()
+	// healthcheck
+	go w.healthcheck.run(ctx, w.exitError)
 
 	// filewatcher
-	e.exit <- e.filewatcher.initialize()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	e.exit <- e.filewatcher.run()
+	go w.filewatcher.run(ctx, w.exitError)
 
 	// monitor stopped
 	ticker := time.NewTicker(1 * time.Second)
@@ -38,27 +36,35 @@ func (e *watchdog) run() (err error) {
 		case tm := <-ticker.C:
 			// TODO: 消す
 			logger.Infof("Still running at %v", tm)
-		case <-e.exit:
+		case <-w.exit:
+			logger.Info("watchdog-symlinker exit called ...")
 			ticker.Stop()
-			logger.Info("watchdog-symlinker Stop ...")
 			return nil
+		case err := <-w.exitError:
+			logger.Errorf("watchdog-symlinker exit called via error ...\n%s", err)
+			ticker.Stop()
+			return err
 		}
 	}
 }
 
-func (e *watchdog) Start(s service.Service) error {
+func (w *watchdog) Start(s service.Service) error {
 	if service.Interactive() {
-		logger.Info("Running in terminal.")
+		logger.Info("Running in terminal ...")
 	} else {
-		logger.Info("Running under service manager.")
+		logger.Info("Running under service manager ...")
 	}
-	e.exit = make(chan error)
+	w.exit = make(chan struct{})
+	w.exitError = make(chan error)
 
-	go e.run()
+	go w.run()
 	return nil
 }
 
-func (e *watchdog) Stop(s service.Service) error {
-	close(e.exit)
+func (w *watchdog) Stop(s service.Service) error {
+	logger.Info("stopping watchdog-symlinker ...")
+	close(w.exit)
+	close(w.exitError)
+	logger.Info("successfully stopped ...")
 	return nil
 }

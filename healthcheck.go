@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,15 +9,18 @@ import (
 
 type httpHealthcheck struct{}
 
-func (e *httpHealthcheck) run() (err error) {
-	// TODO: health check は外す
-	// health check
+func (e *httpHealthcheck) run(ctx context.Context, exit chan<- error) (err error) {
 	gin.SetMode(gin.ReleaseMode)
 	routes := gin.Default()
 	routes.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "health")
 	})
-	// localhost 以外は拒否
-	err = routes.Run("127.0.0.1:8080")
-	return
+
+	select {
+	case <-ctx.Done():
+		logger.Info("cancel called in httpHealthchec ...")
+		return
+	case exit <- routes.Run("127.0.0.1:8080"):
+		return
+	}
 }

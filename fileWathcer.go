@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,83 +25,92 @@ type fileWatcher struct {
 	latest      latestFile
 }
 
-func (e *fileWatcher) initialize() (err error) {
-	// check folder exists
-	if !anyfileExists(e.watchFolder) {
-		logger.Infof("%s is empty, skip initialize symlink.\n", e.watchFolder)
-		return nil
-	}
-
-	// remove exisiting symlink (because re-link to latest log file, existing is waste)
-	if symlinkExists(e.dest) {
-		logger.Infof("Removing current Symlink %s.\n", e.dest)
-		deleteSymlink(e.dest)
-	} else {
-		logger.Infof("Symlink %s not found.\n", e.dest)
-	}
-
-	// list files
-	logger.Infof("Checking latest file.")
-	latest, err := getLatestFile(e.watchFolder, e.pattern)
-	if err != nil {
-		return err
-	}
-	// map to latest
-	if latest.path != "" {
-		logger.Infof("Found latest file %s.\n", latest.path)
-		makeSymlink(latest.path, e.dest)
-	}
-	return
-}
-
 // runWatcher
 // @summary: file watcher to replace symlink to latest
-func (e *fileWatcher) run() (_err error) {
+func (e *fileWatcher) run(ctx context.Context, exit chan<- error) {
+
+	// initialize
+	err := e.initialize()
+	if err != nil {
+		exit <- err
+	}
+
 	// watcher
 	w := watcher.New()
 	w.SetMaxEvents(1)
 	w.FilterOps(watcher.Create)
-	r := regexp.MustCompile(e.pattern)
-	w.AddFilterHook(watcher.RegexFilterHook(r, false))
-	go func() {
-		for {
-			select {
-			case event := <-w.Event:
-				if event.Name() != e.symlinkName {
-					logger.Info(event)
-					source := path.Join(e.watchFolder, event.Name())
-					// replace symlink
-					replaceSymlink(source, e.dest)
-				}
-			case err := <-w.Error:
-				log.Fatalln(err)
-				_err = err
-			case <-w.Closed:
-				return
-			}
-		}
-	}()
 
 	if err := w.Add(e.watchFolder); err != nil {
 		log.Fatalln(err)
-		_err = err
+		exit <- err
 	}
 
-	logger.Info("List current files in watchfolder.")
+	logger.Info("List current files in watchfolder ...")
 	for path, f := range w.WatchedFiles() {
 		if !f.IsDir() {
 			logger.Infof(" * %s: %s\n", path, f.Name())
 		}
 	}
 
+	r := regexp.MustCompile(e.pattern)
+	w.AddFilterHook(watcher.RegexFilterHook(r, false))
 	go func() {
-		logger.Infof("Filewatcher started: %s\n", e.watchFolder)
-		w.Wait()
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Info("cancel called in filewatcher ...")
+				return
+			case event := <-w.Event:
+				if event.Name() != e.symlinkName {
+					logger.Info(event)
+					source := path.Join(e.watchFolder, event.Name())
+					replaceSymlink(source, e.dest)
+				}
+			case err := <-w.Error:
+				log.Fatalln(err)
+				exit <- err
+			case <-w.Closed:
+				return
+			}
+		}
 	}()
 
+	logger.Infof("Filewatcher starting ... %s\n", e.watchFolder)
 	if err := w.Start(time.Millisecond * 1000); err != nil {
 		log.Fatalln(err)
-		_err = err
+		exit <- err
+	}
+
+	logger.Infof("Filewatcher waiting ... \n")
+	w.Wait()
+	return
+}
+
+func (e *fileWatcher) initialize() (err error) {
+	// check folder exists
+	if !anyfileExists(e.watchFolder) {
+		logger.Infof("%s is empty, skip initialize symlink ...\n", e.watchFolder)
+		return nil
+	}
+
+	// remove exisiting symlink (because re-link to latest log file, existing is waste)
+	if symlinkExists(e.dest) {
+		logger.Infof("Removing current Symlink: %s\n", e.dest)
+		deleteSymlink(e.dest)
+	} else {
+		logger.Infof("Symlink %s not found ...\n", e.dest)
+	}
+
+	// list files
+	logger.Infof("Checking latest file ...\n")
+	latest, err := getLatestFile(e.watchFolder, e.pattern)
+	if err != nil {
+		return err
+	}
+	// map to latest
+	if latest.path != "" {
+		logger.Infof("Found latest file: %s\n", latest.path)
+		makeSymlink(latest.path, e.dest)
 	}
 	return
 }
@@ -116,7 +126,7 @@ func deleteSymlink(symlinkPath string) {
 			logger.Infof("failed to unlink: %+v\n", err)
 		}
 	} else if os.IsNotExist(err) {
-		logger.Infof("symlink not found, no need to unlink.")
+		logger.Infof("symlink not found, no need to unlink ...")
 	}
 }
 func makeSymlink(filePath string, symlinkPath string) {
@@ -145,7 +155,7 @@ func getLatestFile(dir string, pattern string) (latest latestFile, err error) {
 		return latest, err
 	}
 	if len(files) == 0 {
-		return latest, logger.Errorf("no file exists")
+		return latest, logger.Errorf("no file exists ...")
 	}
 	r := regexp.MustCompile(pattern)
 	for _, fi := range files {
