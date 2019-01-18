@@ -53,8 +53,9 @@ go build
 ## depscheck
 
 ```cmd
-depscheck -v github.com\guitarrapc\watchdog-symlinker
-github.com\guitarrapc\watchdog-symlinker: 3 packages, 881 LOC, 47 calls, 0 depth, 41 depth int.
+$ depscheck -v github.com\guitarrapc\watchdog-symlinker
+
+github.com\guitarrapc\watchdog-symlinker: 4 packages, 1057 LOC, 61 calls, 0 depth, 51 depth int.
 +---------+--------------+-----------------+-----------+-------+-----+--------+-------+----------+
 |   PKG   |     RECV     |      NAME       |   TYPE    | COUNT | LOC | LOCCUM | DEPTH | DEPTHINT |
 +---------+--------------+-----------------+-----------+-------+-----+--------+-------+----------+
@@ -65,9 +66,10 @@ github.com\guitarrapc\watchdog-symlinker: 3 packages, 881 LOC, 47 calls, 0 depth
 |         |              | Default         | func      |     1 |   5 |     68 |     0 |        9 |
 |         |              | SetMode         | func      |     1 |  15 |     15 |     0 |        0 |
 |         |              | Context         | type      |     1 |     |        |       |          |
-| service | Logger       | Errorf          | method    |     1 |   0 |      0 |     0 |        0 |
-|         | Logger       | Info            | method    |     6 |   0 |      0 |     0 |        0 |
-|         | Logger       | Infof           | method    |    13 |   0 |      0 |     0 |        0 |
+| service | Logger       | Error           | method    |     4 |   0 |      0 |     0 |        0 |
+|         | Logger       | Errorf          | method    |     3 |   0 |      0 |     0 |        0 |
+|         | Logger       | Info            | method    |    12 |   0 |      0 |     0 |        0 |
+|         | Logger       | Infof           | method    |    12 |   0 |      0 |     0 |        0 |
 |         | Logger       | Warning         | method    |     1 |   0 |      0 |     0 |        0 |
 |         | Service      | Logger          | method    |     1 |   0 |      0 |     0 |        0 |
 |         | Service      | Run             | method    |     1 |   0 |      0 |     0 |        0 |
@@ -77,8 +79,11 @@ github.com\guitarrapc\watchdog-symlinker: 3 packages, 881 LOC, 47 calls, 0 depth
 |         |              | Logger          | interface |     1 |     |        |       |          |
 |         |              | Service         | interface |     2 |     |        |       |          |
 |         |              | Config          | type      |     1 |     |        |       |          |
+| statsd  | *Client      | Incr            | method    |     1 |   2 |    148 |     0 |        9 |
+|         |              | New             | func      |     1 |  13 |     16 |     0 |        1 |
 | watcher | *Watcher     | Add             | method    |     1 |  35 |     86 |     0 |        2 |
 |         | *Watcher     | AddFilterHook   | method    |     1 |   4 |      4 |     0 |        0 |
+|         | *Watcher     | Close           | method    |     1 |  12 |     12 |     0 |        0 |
 |         | *Watcher     | FilterOps       | method    |     1 |   7 |      7 |     0 |        0 |
 |         | *Watcher     | SetMaxEvents    | method    |     1 |   4 |      4 |     0 |        0 |
 |         | *Watcher     | Start           | method    |     1 |  75 |    267 |     0 |        6 |
@@ -88,12 +93,13 @@ github.com\guitarrapc\watchdog-symlinker: 3 packages, 881 LOC, 47 calls, 0 depth
 |         |              | New             | func      |     1 |  16 |     16 |     0 |        0 |
 |         |              | RegexFilterHook | func      |     1 |  16 |     16 |     0 |        0 |
 +---------+--------------+-----------------+-----------+-------+-----+--------+-------+----------+
-+---------+------------------------------------------------------------------------------+-------+-------+--------+-------+----------+
-|   PKG   |                                     PATH                                     | COUNT | CALLS | LOCCUM | DEPTH | DEPTHINT |
-+---------+------------------------------------------------------------------------------+-------+-------+--------+-------+----------+
-| gin     | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/gin-gonic/gin     |     7 |     7 |    436 |     0 |       26 |
-| service | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/kardianos/service |    12 |    30 |     33 |     0 |        7 |
-| watcher | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/radovskyb/watcher |    10 |    10 |    412 |     0 |        8 |
-+---------+------------------------------------------------------------------------------+-------+-------+--------+-------+----------+
++---------+--------------------------------------------------------------------------------------+-------+-------+--------+-------+----------+
+|   PKG   |                                         PATH                                         | COUNT | CALLS | LOCCUM | DEPTH | DEPTHINT |
++---------+--------------------------------------------------------------------------------------+-------+-------+--------+-------+----------+
+| gin     | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/gin-gonic/gin             |     7 |     7 |    436 |     0 |       26 |
+| service | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/kardianos/service         |    13 |    41 |     33 |     0 |        7 |
+| statsd  | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/DataDog/datadog-go/statsd |     2 |     2 |    164 |     0 |       10 |
+| watcher | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/radovskyb/watcher         |    11 |    11 |    424 |     0 |        8 |
++---------+--------------------------------------------------------------------------------------+-------+-------+--------+-------+----------+
 Cool, looks like your dependencies are sane.
 ```
