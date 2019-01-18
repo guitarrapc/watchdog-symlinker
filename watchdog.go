@@ -11,7 +11,7 @@ type watchdog struct {
 	exit        chan struct{}
 	exitError   chan error
 	filewatcher fileWatcher
-	healthcheck httpHealthcheck
+	healthcheck healthcheck
 }
 
 func (w *watchdog) run() (err error) {

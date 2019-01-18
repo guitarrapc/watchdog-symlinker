@@ -22,7 +22,7 @@ func main() {
 	var command string
 	w := &watchdog{}
 	w.filewatcher = fileWatcher{}
-	w.healthcheck = httpHealthcheck{}
+	w.healthcheck = &healthcheckhttp{}
 
 	// arguments
 	switch len(os.Args) {
