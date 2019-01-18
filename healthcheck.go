@@ -38,14 +38,14 @@ func (e *healthcheckstatsd) run(ctx context.Context, exit chan<- error) (err err
 	c, err := statsd.New("127.0.0.1:8125")
 	if err != nil {
 		log.Fatal(err)
+		return err
 	}
-	c.Namespace = "watchdog-symlinker."
-	c.Tags = append(c.Tags, "watcher:watchdog-symlinker")
 
-	//ticker := time.NewTicker(60 * time.Second)
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
+	c.Namespace = "watchdog-symlinker."
+	c.Tags = append(c.Tags, "watcher:watchdog-symlinker")
 	for {
 		select {
 		case <-ctx.Done():
