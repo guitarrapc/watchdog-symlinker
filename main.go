@@ -19,25 +19,31 @@ func main() {
 		Description: "watch folder and create symlink to the latest file.",
 	}
 
-	w := &watchdog{}
-	w.filewatcher = fileWatcher{}
-	w.healthchecks = []healthcheck{&healthcheckhttp{}, &healthcheckstatsd{}}
+	// setup watchdog service
+	filewatcher := &fileWatcher{}
+	httphealthcheck := &healthcheckhttp{}
+	statsdhealthcheck := &healthcheckstatsd{}
 
 	// flags
 	command := flag.StringP("command", "c", "", "specify service command from install|uninstall|start|stop")
-	flag.StringVarP(&w.filewatcher.pattern, "pattern", "p", "", "specify file name pattern to watch changes")
-	flag.StringVarP(&w.filewatcher.watchFolder, "folder", "f", "", "specify path to the file watcher's target folder")
-	flag.StringVarP(&w.filewatcher.symlinkName, "symlink", "s", "", "specify symlink name")
+	flag.StringVarP(&filewatcher.pattern, "pattern", "p", "", "specify file name pattern to watch changes")
+	flag.StringVarP(&filewatcher.watchFolder, "folder", "f", "", "specify path to the file watcher's target folder")
+	flag.StringVarP(&filewatcher.symlinkName, "symlink", "s", "", "specify symlink name")
+	flag.BoolVar(&httphealthcheck.enable, "healthcheckHttpEnabled", true, "Use local http healthcheck or not.")
+	flag.StringVar(&httphealthcheck.addr, "healthcheckHttpAddr", "127.0.0.1:12250", "specify http healthcheck's waiting host:port.")
+	flag.BoolVar(&statsdhealthcheck.enable, "healthcheckStatsdEnabled", true, "Use datadog statsd healthcheck or not.")
+	flag.StringVar(&statsdhealthcheck.addr, "healthcheckStatsdAddr", "127.0.0.1:8125", "specify statsd healthcheck's waiting host:port.")
 	flag.Parse()
-	if w.filewatcher.watchFolder != "" && w.filewatcher.symlinkName != "" {
-		w.filewatcher.dest = path.Join(w.filewatcher.watchFolder, w.filewatcher.symlinkName)
+	if filewatcher.watchFolder != "" && filewatcher.symlinkName != "" {
+		filewatcher.dest = path.Join(filewatcher.watchFolder, filewatcher.symlinkName)
 	}
-	if *command == "" && (w.filewatcher.pattern == "" || w.filewatcher.watchFolder == "" || w.filewatcher.symlinkName == "") {
+	if *command == "" && (filewatcher.pattern == "" || filewatcher.watchFolder == "" || filewatcher.symlinkName == "") {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
 	// create service
+	w := &watchdog{filewatcher: *filewatcher, healthchecks: []healthcheck{httphealthcheck, statsdhealthcheck}}
 	svcConfig.Arguments = []string{"-p", w.filewatcher.pattern, "-f", w.filewatcher.watchFolder, "-s", w.filewatcher.symlinkName}
 	s, err := service.New(w, svcConfig)
 	if err != nil {

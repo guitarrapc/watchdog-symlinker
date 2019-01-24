@@ -13,32 +13,61 @@ type (
 	healthcheck interface {
 		run(ctx context.Context, exitError chan<- error) (err error)
 	}
-	healthcheckhttp   struct{}
-	healthcheckstatsd struct{}
+	healthcheckhttp struct {
+		enable bool
+		addr   string
+	}
+	healthcheckstatsd struct {
+		enable bool
+		addr   string
+	}
 )
 
-func (*healthcheckhttp) run(ctx context.Context, exitError chan<- error) (err error) {
+func (h *healthcheckhttp) run(ctx context.Context, exitError chan<- error) (err error) {
+	// validate
+	if !h.enable {
+		logger.Info("healthcheckhttp is disabled ...")
+		return nil
+	}
+
+	logger.Infof("starting healthcheckhttp on %s ...", h.addr)
+
+	// execute
 	gin.SetMode(gin.ReleaseMode)
 	routes := gin.Default()
 	routes.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "health")
 	})
 
+	logger.Info("successfully start healthcheckhttp ... ")
+
+	err = routes.Run(h.addr)
 	select {
 	case <-ctx.Done():
 		logger.Info("cancel called in healthcheckhttp ...")
 		return
-	case exitError <- routes.Run("127.0.0.1:8080"):
+	case exitError <- err:
 		return
 	}
 }
 
-func (e *healthcheckstatsd) run(ctx context.Context, exitError chan<- error) (err error) {
-	c, err := statsd.New("127.0.0.1:8125")
+func (h *healthcheckstatsd) run(ctx context.Context, exitError chan<- error) (err error) {
+	// validate
+	if !h.enable {
+		logger.Info("healthcheckstatsd is disabled ...")
+		return nil
+	}
+
+	logger.Infof("starting healthcheckstatsd on %s ...", h.addr)
+
+	// execute
+	c, err := statsd.New(h.addr)
 	if err != nil {
 		logger.Error(err)
 		return err
 	}
+
+	logger.Info("successfully start healthcheckstatsd ... ")
 
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()

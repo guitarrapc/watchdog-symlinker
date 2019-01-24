@@ -28,6 +28,8 @@ type fileWatcher struct {
 // @summary: file watcher to replace symlink to latest
 func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError chan<- error) {
 
+	logger.Info("starting filewatcher ...")
+
 	// initialize existing symlink
 	err := e.initializeSymlink()
 	if err != nil {
@@ -83,7 +85,7 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 		w.Wait()
 	}()
 
-	logger.Infof("Filewatcher starting ... %s\n", e.watchFolder)
+	logger.Infof("successfully start filewatcher ... %s\n", e.watchFolder)
 	if err := w.Start(time.Second * 1); err != nil {
 		logger.Error(err)
 		exitError <- err
