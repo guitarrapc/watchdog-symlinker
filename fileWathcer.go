@@ -26,12 +26,12 @@ type fileWatcher struct {
 
 // runWatcher
 // @summary: file watcher to replace symlink to latest
-func (e *fileWatcher) run(ctx context.Context, exit chan<- error) {
+func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError chan<- error) {
 
-	// initialize
-	err := e.initialize()
+	// initialize existing symlink
+	err := e.initializeSymlink()
 	if err != nil {
-		exit <- err
+		exitError <- err
 	}
 
 	// watcher
@@ -43,7 +43,7 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- error) {
 	// add watch folder
 	if err := w.Add(e.watchFolder); err != nil {
 		logger.Error(err)
-		exit <- err
+		exitError <- err
 	}
 
 	logger.Info("List current files in watchfolder ...")
@@ -69,8 +69,11 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- error) {
 				}
 			case err := <-w.Error:
 				logger.Error(err)
-				exit <- err
+				exitError <- err
 			case <-w.Closed:
+				logger.Info("file watcher ended because of watcher closed.")
+				var complete struct{}
+				exit <- complete
 				return
 			}
 		}
@@ -83,12 +86,12 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- error) {
 	logger.Infof("Filewatcher starting ... %s\n", e.watchFolder)
 	if err := w.Start(time.Second * 1); err != nil {
 		logger.Error(err)
-		exit <- err
+		exitError <- err
 	}
 	return
 }
 
-func (e *fileWatcher) initialize() (err error) {
+func (e *fileWatcher) initializeSymlink() (err error) {
 	// check folder exists
 	if !e.anyfileExists(e.watchFolder) {
 		logger.Infof("%s is empty, skip initialize symlink ...\n", e.watchFolder)

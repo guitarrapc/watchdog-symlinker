@@ -11,13 +11,13 @@ import (
 
 type (
 	healthcheck interface {
-		run(ctx context.Context, exit chan<- error) (err error)
+		run(ctx context.Context, exitError chan<- error) (err error)
 	}
 	healthcheckhttp   struct{}
 	healthcheckstatsd struct{}
 )
 
-func (*healthcheckhttp) run(ctx context.Context, exit chan<- error) (err error) {
+func (*healthcheckhttp) run(ctx context.Context, exitError chan<- error) (err error) {
 	gin.SetMode(gin.ReleaseMode)
 	routes := gin.Default()
 	routes.GET("/", func(c *gin.Context) {
@@ -28,12 +28,12 @@ func (*healthcheckhttp) run(ctx context.Context, exit chan<- error) (err error) 
 	case <-ctx.Done():
 		logger.Info("cancel called in healthcheckhttp ...")
 		return
-	case exit <- routes.Run("127.0.0.1:8080"):
+	case exitError <- routes.Run("127.0.0.1:8080"):
 		return
 	}
 }
 
-func (e *healthcheckstatsd) run(ctx context.Context, exit chan<- error) (err error) {
+func (e *healthcheckstatsd) run(ctx context.Context, exitError chan<- error) (err error) {
 	c, err := statsd.New("127.0.0.1:8125")
 	if err != nil {
 		logger.Error(err)
