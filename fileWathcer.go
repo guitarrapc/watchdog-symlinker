@@ -93,13 +93,13 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 
 func (e *fileWatcher) initializeSymlink() (err error) {
 	// check folder exists
-	if !e.anyfileExists(e.watchFolder) {
+	if !e.containsFile(e.watchFolder) {
 		logger.Infof("%s is empty, skip initialize symlink ...\n", e.watchFolder)
 		return nil
 	}
 
 	// remove exisiting symlink (because re-link to latest log file, existing is waste)
-	if e.symlinkExists(e.dest) {
+	if e.existsSymlink(e.dest) {
 		logger.Infof("Removing current Symlink: %s\n", e.dest)
 		e.deleteSymlink(e.dest)
 	} else {
@@ -115,14 +115,15 @@ func (e *fileWatcher) initializeSymlink() (err error) {
 	// map to latest
 	if latest.path != "" {
 		logger.Infof("Found latest file: %s\n", latest.path)
-		e.makeSymlink(latest.path, e.dest)
+		e.createSymlink(latest.path, e.dest)
 	}
 	return
 }
 
+// symlink
 func (e *fileWatcher) replaceSymlink(filePath string, symlinkPath string) {
 	e.deleteSymlink(symlinkPath)
-	e.makeSymlink(filePath, symlinkPath)
+	e.createSymlink(filePath, symlinkPath)
 }
 
 func (e *fileWatcher) deleteSymlink(symlinkPath string) {
@@ -134,7 +135,16 @@ func (e *fileWatcher) deleteSymlink(symlinkPath string) {
 		logger.Infof("symlink not found, no need to unlink ...")
 	}
 }
-func (e *fileWatcher) makeSymlink(filePath string, symlinkPath string) {
+
+func (e *fileWatcher) existsSymlink(linkPath string) bool {
+	info, err := os.Lstat(linkPath)
+	if err != nil {
+		return false
+	}
+	return info.Mode()&os.ModeSymlink == os.ModeSymlink
+}
+
+func (e *fileWatcher) createSymlink(filePath string, symlinkPath string) {
 	logger.Infof("link %s with source %s\n", symlinkPath, filePath)
 	err := os.Symlink(filePath, symlinkPath)
 	if err != nil {
@@ -142,7 +152,8 @@ func (e *fileWatcher) makeSymlink(filePath string, symlinkPath string) {
 	}
 }
 
-func (e *fileWatcher) anyfileExists(dir string) bool {
+// directory
+func (e *fileWatcher) containsFile(dir string) bool {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return false
@@ -177,15 +188,8 @@ func (e *fileWatcher) getLatestFile(dir string, pattern string) (latest latestFi
 	return
 }
 
-func (e *fileWatcher) fileExists(filename string) bool {
+// file
+func (e *fileWatcher) existsFile(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil
-}
-
-func (e *fileWatcher) symlinkExists(linkPath string) bool {
-	info, err := os.Lstat(linkPath)
-	if err != nil {
-		return false
-	}
-	return info.Mode()&os.ModeSymlink == os.ModeSymlink
 }
