@@ -1,13 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/kardianos/service"
+	flag "github.com/spf13/pflag"
 )
 
 // global logger
@@ -20,47 +19,29 @@ func main() {
 		Description: "watch folder and create symlink to the latest file.",
 	}
 
-	var command string
 	w := &watchdog{}
 	w.filewatcher = fileWatcher{}
 	w.healthchecks = []healthcheck{&healthcheckhttp{}, &healthcheckstatsd{}}
 
-	// arguments
-	switch len(os.Args) {
-	case 2:
-		// command line "service start/stop/uninstall" action called
-		command = os.Args[1]
-	case 4:
-		// main invokation
-		w.filewatcher.pattern = os.Args[1]
-		w.filewatcher.watchFolder = os.Args[2]
-		w.filewatcher.symlinkName = os.Args[3]
+	// flags
+	command := flag.StringP("command", "c", "", "specify service command from install|uninstall|start|stop")
+	flag.StringVarP(&w.filewatcher.pattern, "pattern", "p", "", "specify file name pattern to watch changes")
+	flag.StringVarP(&w.filewatcher.watchFolder, "folder", "f", "", "specify path to the file watcher's target folder")
+	flag.StringVarP(&w.filewatcher.symlinkName, "symlink", "s", "", "specify symlink name")
+	flag.Parse()
+	if w.filewatcher.watchFolder != "" && w.filewatcher.symlinkName != "" {
 		w.filewatcher.dest = path.Join(w.filewatcher.watchFolder, w.filewatcher.symlinkName)
-	case 5:
-		// command line "service install" action called (also start/stop/uninstall can work.)
-		command = os.Args[1]
-		svcConfig.Arguments = []string{os.Args[2], os.Args[3], os.Args[4]}
-	default:
-		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-		fmt.Printf("Usage: %s filenamePattern FolderToWatch symlinkName\nSample: %s ^.*.log$ %s current.log", os.Args[0], os.Args[0], dir)
+	}
+	if *command == "" && (w.filewatcher.pattern == "" || w.filewatcher.watchFolder == "" || w.filewatcher.symlinkName == "") {
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
 	// create service
+	svcConfig.Arguments = []string{"-p", w.filewatcher.pattern, "-f", w.filewatcher.watchFolder, "-s", w.filewatcher.symlinkName}
 	s, err := service.New(w, svcConfig)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	// service action
-	if command != "" {
-		err = service.Control(s, os.Args[1])
-		if err != nil {
-			logger.Warning("Failed (%s): %s\n", os.Args[1], err)
-			return
-		}
-		logger.Info("Succeeded (%s)\n", os.Args[1])
-		return
 	}
 
 	// setup the logger
@@ -68,6 +49,17 @@ func main() {
 	logger, err = s.Logger(errs)
 	if err != nil {
 		log.Fatal()
+	}
+
+	// service action
+	if *command != "" {
+		err = service.Control(s, *command)
+		if err != nil {
+			logger.Errorf("Failed (%s): %s\n", *command, err)
+			return
+		}
+		logger.Infof("Succeeded (%s)\n", *command)
+		return
 	}
 
 	// Run in terminal

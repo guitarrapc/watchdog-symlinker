@@ -1,9 +1,22 @@
 ## How to run
 
+### Help
+
+```
+$ watchdog-symlinker.exe -h
+
+Usage of watchdog-symlinker.exe:
+  -c, --command string   specify service command from install|uninstall|start|stop
+  -f, --folder string    specify path to the file watcher's target folder
+  -p, --pattern string   specify file name pattern to watch changes
+  -s, --symlink string   specify symlink name
+pflag: help requested
+```
+
 ### Console
 
 ```
-watchdog-symlinker.exe ^.*.log$ C:\Users\guitarrapc\Downloads\watchdog\logfiles current.log
+watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log
 ```
 
 ### Windows Service
@@ -13,25 +26,25 @@ install Service with arguments.
 > This installation set service `<execution_path>/watchdog-symlinker.exe ^.*.log$ C:\Users\guitarrapc\Downloads\watchdog\logfiles current.log`
 
 ```
-watchdog-symlinker.exe install ^.*.log$ C:\Users\guitarrapc\Downloads\watchdog\logfiles current.log
+watchdog-symlinker.exe -c install -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log
 ```
 
 Start Service
 
 ```
-watchdog-symlinker.exe start
-```
-
-Uninstall Service
-
-```
-watchdog-symlinker.exe uninstall
+watchdog-symlinker.exe -c start
 ```
 
 Stop Service
 
 ```
-watchdog-symlinker.exe stop
+watchdog-symlinker.exe -c stop
+```
+
+Uninstall Service
+
+```
+watchdog-symlinker.exe -c uninstall
 ```
 
 ## build
