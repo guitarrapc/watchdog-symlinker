@@ -35,9 +35,8 @@ func (w *watchdog) run() (err error) {
 	defer ticker.Stop()
 	for {
 		select {
-		case tm := <-ticker.C:
-			// TODO: 消す
-			logger.Infof("Still running at %v", tm)
+		case <-ticker.C:
+			// do nothing
 		case <-w.exit:
 			logger.Info("watchdog-symlinker exit called ...")
 			ticker.Stop()
