@@ -72,18 +72,19 @@ func (h *healthcheckstatsd) run(ctx context.Context, exitError chan<- error) (er
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
-	c.Namespace = "watchdog-symlinker."
-	c.Tags = append(c.Tags, "watcher:watchdog-symlinker")
+	c.Namespace = "watchdog_symlinker."
+	c.Tags = append(c.Tags, "watcher:watchdog_symlinker")
+	metricName := "health"
 	for {
 		select {
 		case <-ctx.Done():
 			logger.Info("cancel called in healthcheckstatsd ...")
 			return
 		case <-ticker.C:
-			logger.Info("sending metrics to datadog")
-			err = c.Incr("health", nil, 1)
+			logger.Infof("sending metrics to datadog: %s%s", c.Namespace, metricName)
+			err = c.Incr(metricName, nil, 1)
 			if err != nil {
-				logger.Errorf("error while sending datadog metrics", err)
+				logger.Errorf("error while sending datadog metrics, keep runing healtchcheck. %s", err)
 			}
 		}
 	}
