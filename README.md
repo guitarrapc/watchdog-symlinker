@@ -6,14 +6,20 @@
 $ watchdog-symlinker.exe -h
 
 Usage of watchdog-symlinker.exe:
-  -c, --command string   specify service command from install|uninstall|start|stop
-  -f, --folder string    specify path to the file watcher's target folder
-  -p, --pattern string   specify file name pattern to watch changes
-  -s, --symlink string   specify symlink name
+  -c, --command string                 specify service command from install|uninstall|start|stop
+  -f, --folder string                  specify path to the file watcher's target folder
+      --healthcheckHttpAddr string     specify http healthcheck's waiting host:port. (default "127.0.0.1:12250")
+      --healthcheckHttpEnabled         Use local http healthcheck or not. (default true)
+      --healthcheckStatsdAddr string   specify statsd healthcheck's waiting host:port. (default "127.0.0.1:8125")
+      --healthcheckStatsdEnabled       Use datadog statsd healthcheck or not. (default true)
+  -p, --pattern string                 specify file name pattern to watch changes
+  -s, --symlink string                 specify symlink name
 pflag: help requested
 ```
 
 ### Console
+
+minimum configuration
 
 ```
 watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log
@@ -26,7 +32,6 @@ combination of install and start service.
 ```
 watchdog-symlinker.exe -c install -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log && watchdog-symlinker.exe -c start
 ```
-
 
 install Service with arguments.
 
@@ -67,13 +72,49 @@ dep ensure
 go build
 ```
 
+## Customization
+
+You can customize behaiviour with cli arguments.
+
+### Control httphealthcheck
+
+httphealtcheck is default enabled on `127.0.0.1:12250`.
+
+use `--healthcheckHttpEnabled` to disable healthcheck.
+
+```
+watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log --healthcheckHttpEnabled false
+```
+
+use `--healthcheckHttpAddr` to change httphealthcheck waitinig addr. sample will change to `0.0.0.0:8080`
+
+```
+watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log --healthcheckHttpAddr 0.0.0.0:8080
+```
+
+### Control statsdhealthcheck
+
+datadog statsdhealtcheck is default enabled on `127.0.0.1:8125`.
+
+use `--healthcheckStatsdEnabled` to disable healthcheck.
+
+```
+watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log --healthcheckStatsdEnabled false
+```
+
+use `--healthcheckStatsdAddr` to change statsdhealthcheck waitinig addr. sample will change to `127.0.0.1:8127`
+
+```
+watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log --healthcheckStatsdAddr 127.0.0.1:8127
+```
+
 
 ## depscheck
 
 ```cmd
 $ depscheck -v github.com\guitarrapc\watchdog-symlinker
 
-github.com\guitarrapc\watchdog-symlinker: 4 packages, 1057 LOC, 61 calls, 0 depth, 51 depth int.
+github.com\guitarrapc\watchdog-symlinker: 5 packages, 2160 LOC, 79 calls, 0 depth, 153 depth int.
 +---------+--------------+-----------------+-----------+-------+-----+--------+-------+----------+
 |   PKG   |     RECV     |      NAME       |   TYPE    | COUNT | LOC | LOCCUM | DEPTH | DEPTHINT |
 +---------+--------------+-----------------+-----------+-------+-----+--------+-------+----------+
@@ -84,11 +125,16 @@ github.com\guitarrapc\watchdog-symlinker: 4 packages, 1057 LOC, 61 calls, 0 dept
 |         |              | Default         | func      |     1 |   5 |     68 |     0 |        9 |
 |         |              | SetMode         | func      |     1 |  15 |     15 |     0 |        0 |
 |         |              | Context         | type      |     1 |     |        |       |          |
+| pflag   |              | BoolVar         | func      |     2 |   2 |     60 |     0 |        8 |
+|         |              | Parse           | func      |     1 |   3 |    753 |     0 |       61 |
+|         |              | PrintDefaults   | func      |     1 |   2 |    107 |     0 |        7 |
+|         |              | StringP         | func      |     1 |   2 |     65 |     0 |       10 |
+|         |              | StringVar       | func      |     2 |   2 |     59 |     0 |        8 |
+|         |              | StringVarP      | func      |     3 |   2 |     59 |     0 |        8 |
 | service | Logger       | Error           | method    |     4 |   0 |      0 |     0 |        0 |
-|         | Logger       | Errorf          | method    |     3 |   0 |      0 |     0 |        0 |
-|         | Logger       | Info            | method    |    12 |   0 |      0 |     0 |        0 |
-|         | Logger       | Infof           | method    |    12 |   0 |      0 |     0 |        0 |
-|         | Logger       | Warning         | method    |     1 |   0 |      0 |     0 |        0 |
+|         | Logger       | Errorf          | method    |     4 |   0 |      0 |     0 |        0 |
+|         | Logger       | Info            | method    |    17 |   0 |      0 |     0 |        0 |
+|         | Logger       | Infof           | method    |    15 |   0 |      0 |     0 |        0 |
 |         | Service      | Logger          | method    |     1 |   0 |      0 |     0 |        0 |
 |         | Service      | Run             | method    |     1 |   0 |      0 |     0 |        0 |
 |         |              | Control         | func      |     1 |  20 |     20 |     0 |        5 |
@@ -115,7 +161,8 @@ github.com\guitarrapc\watchdog-symlinker: 4 packages, 1057 LOC, 61 calls, 0 dept
 |   PKG   |                                         PATH                                         | COUNT | CALLS | LOCCUM | DEPTH | DEPTHINT |
 +---------+--------------------------------------------------------------------------------------+-------+-------+--------+-------+----------+
 | gin     | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/gin-gonic/gin             |     7 |     7 |    436 |     0 |       26 |
-| service | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/kardianos/service         |    13 |    41 |     33 |     0 |        7 |
+| pflag   | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/spf13/pflag               |     6 |    10 |   1103 |     0 |      102 |
+| service | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/kardianos/service         |    12 |    49 |     33 |     0 |        7 |
 | statsd  | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/DataDog/datadog-go/statsd |     2 |     2 |    164 |     0 |       10 |
 | watcher | github.com/guitarrapc/watchdog-symlinker/vendor/github.com/radovskyb/watcher         |    11 |    11 |    424 |     0 |        8 |
 +---------+--------------------------------------------------------------------------------------+-------+-------+--------+-------+----------+
