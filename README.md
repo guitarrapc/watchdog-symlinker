@@ -21,9 +21,14 @@ watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\log
 
 ### Windows Service
 
-install Service with arguments.
+combination of install and start service.
 
-> This installation set service `<execution_path>/watchdog-symlinker.exe ^.*.log$ C:\Users\guitarrapc\Downloads\watchdog\logfiles current.log`
+```
+watchdog-symlinker.exe -c install -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log && watchdog-symlinker.exe -c start
+```
+
+
+install Service with arguments.
 
 ```
 watchdog-symlinker.exe -c install -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log
