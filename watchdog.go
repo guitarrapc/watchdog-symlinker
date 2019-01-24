@@ -20,15 +20,16 @@ func (w *watchdog) run() (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// healthcheck
+	// background action1. healthcheck
 	for _, healthcheck := range w.healthchecks {
 		go healthcheck.run(ctx, w.exitError)
 	}
 
-	// filewatcher
-	go w.filewatcher.run(ctx, w.exitError)
+	// background action2. filewatcher
+	go w.filewatcher.run(ctx, w.exit, w.exitError)
 
-	// monitor stopped
+	// monitor every 1sec.
+	// will be exit via standard or error
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {

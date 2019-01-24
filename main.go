@@ -10,6 +10,7 @@ import (
 	"github.com/kardianos/service"
 )
 
+// global logger
 var logger service.Logger
 
 func main() {
