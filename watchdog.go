@@ -47,7 +47,7 @@ func (w *watchdog) run() (err error) {
 	}
 }
 
-func (w *watchdog) Start(s service.Service) error {
+func (w *watchdog) Start(s service.Service) (err error) {
 	if service.Interactive() {
 		logger.Info("Running in terminal ...")
 	} else {
@@ -56,7 +56,9 @@ func (w *watchdog) Start(s service.Service) error {
 	w.exit = make(chan struct{})
 	w.exitError = make(chan error)
 
-	go w.run()
+	go func() {
+		err = w.run()
+	}()
 	return nil
 }
 

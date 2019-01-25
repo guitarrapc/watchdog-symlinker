@@ -22,7 +22,6 @@ type fileWatcher struct {
 	watchFolder string
 	symlinkName string
 	dest        string
-	latest      latestFile
 }
 
 // runWatcher
@@ -57,7 +56,6 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 		}
 	}
 	logger.Info(strings.Join(fileList, "\n"))
-	fileList = nil
 
 	r := regexp.MustCompile(e.pattern)
 	w.AddFilterHook(watcher.RegexFilterHook(r, false))
@@ -94,7 +92,6 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 		logger.Error(err)
 		exitError <- err
 	}
-	return
 }
 
 func (e *fileWatcher) initializeSymlink() (err error) {
@@ -192,10 +189,4 @@ func (e *fileWatcher) getLatestFile(dir string, pattern string) (latest latestFi
 		return latest, nil
 	}
 	return
-}
-
-// file
-func (e *fileWatcher) existsFile(filename string) bool {
-	_, err := os.Stat(filename)
-	return err == nil
 }

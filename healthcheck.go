@@ -11,7 +11,7 @@ import (
 
 type (
 	healthcheck interface {
-		run(ctx context.Context, exitError chan<- error) (err error)
+		run(ctx context.Context, exitError chan<- error)
 	}
 	healthcheckhttp struct {
 		enable bool
@@ -23,11 +23,11 @@ type (
 	}
 )
 
-func (h *healthcheckhttp) run(ctx context.Context, exitError chan<- error) (err error) {
+func (h *healthcheckhttp) run(ctx context.Context, exitError chan<- error) {
 	// validate
 	if !h.enable {
 		logger.Info("healthcheckhttp is disabled ...")
-		return nil
+		return
 	}
 
 	logger.Infof("starting healthcheckhttp on %s ...", h.addr)
@@ -41,7 +41,7 @@ func (h *healthcheckhttp) run(ctx context.Context, exitError chan<- error) (err 
 
 	logger.Info("successfully start healthcheckhttp ... ")
 
-	err = routes.Run(h.addr)
+	err := routes.Run(h.addr)
 	select {
 	case <-ctx.Done():
 		logger.Info("cancel called in healthcheckhttp ...")
@@ -51,11 +51,11 @@ func (h *healthcheckhttp) run(ctx context.Context, exitError chan<- error) (err 
 	}
 }
 
-func (h *healthcheckstatsd) run(ctx context.Context, exitError chan<- error) (err error) {
+func (h *healthcheckstatsd) run(ctx context.Context, exitError chan<- error) {
 	// validate
 	if !h.enable {
 		logger.Info("healthcheckstatsd is disabled ...")
-		return nil
+		return
 	}
 
 	logger.Infof("starting healthcheckstatsd on %s ...", h.addr)
@@ -64,7 +64,8 @@ func (h *healthcheckstatsd) run(ctx context.Context, exitError chan<- error) (er
 	c, err := statsd.New(h.addr)
 	if err != nil {
 		logger.Error(err)
-		return err
+		exitError <- err
+		return
 	}
 
 	logger.Info("successfully start healthcheckstatsd ... ")
