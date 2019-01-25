@@ -1,6 +1,6 @@
 workflow "Golang workflow" {
   on = "push"
-  resolves = ["Build"]
+  resolves = ["Build windows", "Build Linux"]
 }
  
 action "GolangCI-Lint" {
