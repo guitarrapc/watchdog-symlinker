@@ -131,7 +131,7 @@ func (e *fileWatcher) replaceSymlink(filePath string, symlinkPath string) {
 
 func (e *fileWatcher) deleteSymlink(symlinkPath string) {
 	if _, err := os.Lstat(symlinkPath); err == nil {
-		if err := os.Remove(symlinkPath); err != nil {
+		if err = os.Remove(symlinkPath); err != nil {
 			logger.Infof("failed to unlink: %+v\n", err)
 		}
 	} else if os.IsNotExist(err) {
