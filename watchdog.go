@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/kardianos/service"
@@ -30,7 +29,6 @@ func (w *watchdog) run() (err error) {
 	go w.filewatcher.run(ctx, w.exit, w.exitError)
 
 	// monitor every 1sec.
-	// will be exit via standard or error
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -40,12 +38,10 @@ func (w *watchdog) run() (err error) {
 		case <-w.exit:
 			logger.Info("watchdog-symlinker exit called ...")
 			ticker.Stop()
-			os.Exit(0)
 			return nil
 		case err := <-w.exitError:
 			logger.Errorf("watchdog-symlinker exit called via error ...\n%s", err)
 			ticker.Stop()
-			os.Exit(1)
 			return err
 		}
 	}

@@ -68,6 +68,13 @@ func main() {
 		return
 	}
 
-	// Run in terminal
-	s.Run()
+	// run in terminal
+	err = s.Run()
+
+	// notify exitcode when finishing service / console
+	logger.Infof("Exiting service.")
+	if err != nil {
+		os.Exit(1)
+	}
+	os.Exit(0)
 }
