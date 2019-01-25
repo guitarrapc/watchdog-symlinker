@@ -2,7 +2,7 @@
 
 ### Help
 
-```
+```shell
 $ watchdog-symlinker.exe -h
 
 Usage of watchdog-symlinker.exe:
@@ -21,7 +21,7 @@ pflag: help requested
 
 minimum configuration
 
-```
+```shell
 watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log
 ```
 
@@ -29,37 +29,38 @@ watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\log
 
 combination of install and start service.
 
-```
+```shell
 watchdog-symlinker.exe -c install -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log && watchdog-symlinker.exe -c start
 ```
 
 install Service with arguments.
 
-```
+```shell
 watchdog-symlinker.exe -c install -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log
 ```
 
 Start Service
 
-```
+```shell
 watchdog-symlinker.exe -c start
 ```
 
 Stop Service
 
-```
+```shell
 watchdog-symlinker.exe -c stop
 ```
 
 Uninstall Service
 
-```
+```shell
 watchdog-symlinker.exe -c uninstall
 ```
 
 ## build
 
 ### docker build
+
 ```shell
 docker build -t watchdog-symlinker .
 ```
@@ -82,13 +83,13 @@ httphealtcheck is default enabled on `127.0.0.1:12250`.
 
 use `--healthcheckHttpEnabled` to disable healthcheck.
 
-```
+```shell
 watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log --healthcheckHttpEnabled false
 ```
 
 use `--healthcheckHttpAddr` to change httphealthcheck waitinig addr. sample will change to `0.0.0.0:8080`
 
-```
+```shell
 watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log --healthcheckHttpAddr 0.0.0.0:8080
 ```
 
@@ -98,20 +99,21 @@ datadog statsdhealtcheck is default enabled on `127.0.0.1:8125`.
 
 use `--healthcheckStatsdEnabled` to disable healthcheck.
 
-```
+```shell
 watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log --healthcheckStatsdEnabled false
 ```
 
 use `--healthcheckStatsdAddr` to change statsdhealthcheck waitinig addr. sample will change to `127.0.0.1:8127`
 
-```
+```shell
 watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log --healthcheckStatsdAddr 127.0.0.1:8127
 ```
 
 
 ## depscheck
 
-```cmd
+```shell
+$ go get -u github.com/divan/depscheck
 $ depscheck -v github.com\guitarrapc\watchdog-symlinker
 
 github.com\guitarrapc\watchdog-symlinker: 5 packages, 2160 LOC, 79 calls, 0 depth, 153 depth int.
