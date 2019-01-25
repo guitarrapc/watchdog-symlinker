@@ -18,4 +18,5 @@ if [[ "$1" == "build" ]]; then
     echo "# Running Build"
     dep ensure
     go build
+    ls
 fi

@@ -8,8 +8,21 @@ action "GolangCI-Lint" {
   args = "lint"
 }
  
-action "Build" {
+action "Build windows" {
   needs = ["GolangCI-Lint"]
   uses = "./.github/actions/golang"
   args = "build"
+  env = {
+    GOOS = "windows"
+    GOARCH = "amd64"
+  }
+}
+action "Build linux" {
+  needs = ["GolangCI-Lint"]
+  uses = "./.github/actions/golang"
+  args = "build"
+  env = {
+    GOOS = "linux"
+    GOARCH = "amd64"
+  }
 }
