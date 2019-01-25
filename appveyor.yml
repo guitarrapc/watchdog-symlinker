@@ -1,0 +1,21 @@
+clone_folder: C:\gopath\src\appveyor\guitarrapc
+environment:
+  GOPATH: C:\gopath
+  matrix:
+  - _GOOS: windows
+    _GOARCH: amd64
+  - _GOOS: linux
+    _GOARCH: amd64
+
+install:
+  - go get -u github.com/golang/dep/cmd/dep
+  - set PATH=%PATH%;%GOPATH%\bin
+
+before_build:
+  - set GOOS=%_GOOS%
+  - set GOARCH=%_GOARCH%
+
+build_script:
+  - dep ensure
+  - go build -o out/%GOOS%/%GOARCH%
+  - ls out/%GOOS%/%GOARCH%
