@@ -20,8 +20,8 @@ before_build:
 build_script:
   - dep ensure
   - go build
-  - 7z a "%APPVEYOR_BUILD_FOLDER%/watchdog-symlinker_%GOOS%_%GOARCH%_%APPVEYOR_BUILD_VERSION%.zip" "%APPVEYOR_BUILD_FOLDER%/watchdog-symlinker*"
+  - 7z a "watchdog-symlinker_%GOOS%_%GOARCH%_%APPVEYOR_BUILD_VERSION%.zip" "%APPVEYOR_BUILD_FOLDER%/watchdog-symlinker*"
 
 artifacts:
-  - path: "%APPVEYOR_BUILD_FOLDER%/watchdog-symlinker_%GOOS%_%GOARCH%_%APPVEYOR_BUILD_VERSION%.zip"
+  - path: "watchdog-symlinker_%GOOS%_%GOARCH%_%APPVEYOR_BUILD_VERSION%.zip"
     name: watchdog-symlinker_%GOOS%_%GOARCH%_%APPVEYOR_BUILD_VERSION%.zip
