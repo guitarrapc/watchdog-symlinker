@@ -1,8 +1,14 @@
 # options for analysis running
 linters-settings:
+  errcheck:
+    ignore: github.com/kardianos/service:Error.*, github.com/kardianos/service:Warning.*, github.com/kardianos/service:Infof.*,
   govet:
     check-shadowing: true    
   gocyclo:
     min-complexity: 10
   maligned:
     suggest-new: true
+  unparam:
+    # call graph construction algorithm (cha, rta). In general, use cha for libraries,
+    # and rta for programs with main packages. Default is cha.
+    algo: rta
