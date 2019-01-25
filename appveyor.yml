@@ -1,4 +1,6 @@
-clone_folder: C:\gopath\src\appveyor\guitarrapc
+version: '0.0.{build}'
+clone_folder: C:\gopath\src\github.com\guitarrapc/watchdog-symlinker
+
 environment:
   GOPATH: C:\gopath
   matrix:
@@ -18,5 +20,8 @@ before_build:
 build_script:
   - dep ensure
   - go build
-  - ls
-  
+  - 7z a "%APPVEYOR_BUILD_FOLDER%/watchdog-symlinker_%GOOS%_%GOARCH%_%APPVEYOR_BUILD_VERSION%.zip" "${APPVEYOR_BUILD_FOLDER}/watchdog-symlinker*"
+
+artifacts:
+  - path: "%APPVEYOR_BUILD_FOLDER%/watchdog-symlinker_%GOOS%_%GOARCH%_%APPVEYOR_BUILD_VERSION%.zip"
+    name: watchdog-symlinker_%GOOS%_%GOARCH%_%APPVEYOR_BUILD_VERSION%.zip
