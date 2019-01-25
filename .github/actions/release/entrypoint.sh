@@ -42,10 +42,19 @@ main() {
 	# Get the release id.
 	ID=$(jq --raw-output .id "$GITHUB_EVENT_PATH")
 
-	echo "running $GITHUB_ACTION for Release #${ID}"
+	# RENAME
+	BASENAME="${FILE_NAME%.*}"
+	EXTENTION="${FILE_NAME##*.}"
+	if [[ EXTENTION != "" ]]; then
+	    PUT_NAME="${BASENAME}_${GOOS}_${GOARCH}.${EXTENSION}"
+	else
+		PUT_NAME="${BASENAME}_${GOOS}_${GOARCH}"
+	fi
+	mv "./${FILE_NAME}" "./${PUT_NAME}"
 
-    GH_ASSET="https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${ID}/assets?name=$(basename ${FILE_NAME})"
-	curl -sSL -H "${AUTH_HEADER}" -H "Content-Type: application/zip" --data-binary @"${FILE_NAME}" -X POST "${GH_ASSET}"
+	echo "running $GITHUB_ACTION for Release #${ID}, file ${PUT_NAME}"
+    GH_ASSET="https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${ID}/assets?name=${PUT_NAME}"
+	curl -H "${AUTH_HEADER}" -H "Content-Type: application/zip" --data-binary @"${FILE_NAME}" -X POST "${GH_ASSET}"
 }
 
 main

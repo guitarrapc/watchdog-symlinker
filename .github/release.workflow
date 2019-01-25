@@ -1,13 +1,14 @@
 workflow "Golang workflow" {
   on = "release"
-  resolves = ["RELEASE-Windows"]
+  resolves = ["Release-Windows", "Release-Linux"]
 }
  
 action "GolangCI-Lint" {
   uses = "./.github/actions/golang"
   args = "lint"
 }
- 
+
+# windows
 action "Build-Windows" {
   needs = ["GolangCI-Lint"]
   uses = "./.github/actions/golang"
@@ -18,6 +19,18 @@ action "Build-Windows" {
   }
 }
 
+
+action "Release-Windows" {
+  needs = ["Build-Windows"]
+  uses = "./.github/actions/release"
+  env = {
+    FILE_NAME = "watchdog-symlinker.exe"
+    GOOS = "windows"
+    GOARCH = "amd64"
+  }
+}
+
+# linux
 action "Build-Linux" {
   needs = ["GolangCI-Lint"]
   uses = "./.github/actions/golang"
@@ -28,8 +41,12 @@ action "Build-Linux" {
   }
 }
 
-action "RELEASE-Windows" {
-  needs = ["Build-Windows"]
+action "Release-Linux" {
+  needs = ["Build-Linux"]
   uses = "./.github/actions/release"
-  args = "watchdog-symlinker.exe"
+  env = {
+    FILE_NAME = "watchdog-symlinker"
+    GOOS = "linux"
+    GOARCH = "amd64"
+  }
 }
