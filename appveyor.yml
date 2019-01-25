@@ -17,5 +17,6 @@ before_build:
 
 build_script:
   - dep ensure
-  - go build -o out/%GOOS%/%GOARCH%
-  - ls out/%GOOS%/%GOARCH%
+  - go build
+  - ls
+  
