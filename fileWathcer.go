@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/radovskyb/watcher"
@@ -49,11 +50,14 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 	}
 
 	logger.Info("List current files in watchfolder ...")
+	var fileList []string
 	for path, f := range w.WatchedFiles() {
 		if !f.IsDir() {
-			logger.Infof(" * %s: %s\n", path, f.Name())
+			fileList = append(fileList, path)
 		}
 	}
+	logger.Info(strings.Join(fileList, "\n"))
+	fileList = nil
 
 	r := regexp.MustCompile(e.pattern)
 	w.AddFilterHook(watcher.RegexFilterHook(r, false))
