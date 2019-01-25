@@ -1,6 +1,6 @@
 workflow "Golang workflow" {
-  on = "push"
-  resolves = ["Build-Windows", "Build-Linux"]
+  on = "release"
+  resolves = ["RELEASE-Windows"]
 }
  
 action "GolangCI-Lint" {
@@ -26,4 +26,10 @@ action "Build-Linux" {
     GOOS = "linux"
     GOARCH = "amd64"
   }
+}
+
+action "RELEASE-Windows" {
+  needs = ["Build-Windows"]
+  uses = "./.github/actions/release"
+  args = "watchdog-symlinker.exe"
 }
