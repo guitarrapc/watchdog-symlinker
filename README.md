@@ -109,6 +109,19 @@ use `--healthcheckStatsdAddr` to change statsdhealthcheck waitinig addr. sample 
 watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log --healthcheckStatsdAddr 127.0.0.1:8127
 ```
 
+## Lint
+
+install lint.
+
+```shell
+go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+```
+
+run lint.
+
+```shell
+$ golangci-lint run
+```
 
 ## depscheck
 
