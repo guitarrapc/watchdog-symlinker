@@ -28,12 +28,15 @@ type fileWatcher struct {
 // @summary: file watcher to replace symlink to latest
 func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError chan<- error) {
 
+	defer logger.Info("exit fileWatcher")
+
 	logger.Info("starting filewatcher ...")
 
 	// initialize existing symlink
 	err := e.initializeSymlink()
 	if err != nil {
 		exitError <- err
+		return
 	}
 
 	// watcher
@@ -46,6 +49,7 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 	if err := w.Add(e.watchFolder); err != nil {
 		logger.Error(err)
 		exitError <- err
+		return
 	}
 
 	logger.Info("List current files in watchfolder ...")

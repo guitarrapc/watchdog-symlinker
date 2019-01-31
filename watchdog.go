@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"time"
+	"os"
 
 	"github.com/kardianos/service"
 )
@@ -10,11 +10,22 @@ import (
 type watchdog struct {
 	exit         chan struct{}
 	exitError    chan error
+	err          error
+	service      service.Service
 	filewatcher  fileWatcher
 	healthchecks []healthcheck
 }
 
 func (w *watchdog) run() (err error) {
+
+	// stop service when exiting, because it never return to main
+	defer func() {
+		if service.Interactive() {
+			w.Stop(w.service)
+		} else {
+			w.service.Stop()
+		}
+	}()
 
 	// context : goroutine leak prevention
 	ctx, cancel := context.WithCancel(context.Background())
@@ -28,26 +39,20 @@ func (w *watchdog) run() (err error) {
 	// background action2. filewatcher
 	go w.filewatcher.run(ctx, w.exit, w.exitError)
 
-	// monitor every 1sec.
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			// do nothing
-		case <-w.exit:
-			logger.Info("watchdog-symlinker exit called ...")
-			ticker.Stop()
-			return nil
-		case err := <-w.exitError:
-			logger.Errorf("watchdog-symlinker exit called via error ...\n%s", err)
-			ticker.Stop()
-			return err
-		}
+	// monitor exit.
+	select {
+	case <-w.exit:
+		logger.Info("watchdog-symlinker exit called ...")
+		return nil
+	case err := <-w.exitError:
+		logger.Errorf("watchdog-symlinker exit called via error ... %s", err)
+		// pass service exit reason
+		w.err = err
+		return err
 	}
 }
 
-func (w *watchdog) Start(s service.Service) (err error) {
+func (w *watchdog) Start(s service.Service) error {
 	if service.Interactive() {
 		logger.Info("Running in terminal ...")
 	} else {
@@ -56,9 +61,7 @@ func (w *watchdog) Start(s service.Service) (err error) {
 	w.exit = make(chan struct{})
 	w.exitError = make(chan error)
 
-	go func() {
-		err = w.run()
-	}()
+	go w.run()
 	return nil
 }
 
@@ -67,5 +70,14 @@ func (w *watchdog) Stop(s service.Service) error {
 	close(w.exit)
 	close(w.exitError)
 	logger.Info("successfully stopped ...")
+
+	// exit process
+	if w.err != nil {
+		logger.Info("exiting watchdog-symlinker with exitcode 1 ...")
+		os.Exit(1)
+	}
+	logger.Info("exiting watchdog-symlinker with exitcode 0 ...")
+	os.Exit(0)
+
 	return nil
 }

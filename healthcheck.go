@@ -24,6 +24,8 @@ type (
 )
 
 func (h *healthcheckhttp) run(ctx context.Context, exitError chan<- error) {
+	defer logger.Info("exit healthcheckhttp")
+
 	// validate
 	if !h.enable {
 		logger.Info("healthcheckhttp is disabled ...")
@@ -52,6 +54,8 @@ func (h *healthcheckhttp) run(ctx context.Context, exitError chan<- error) {
 }
 
 func (h *healthcheckstatsd) run(ctx context.Context, exitError chan<- error) {
+	defer logger.Info("exit healthcheckstatsd")
+
 	// validate
 	if !h.enable {
 		logger.Info("healthcheckstatsd is disabled ...")

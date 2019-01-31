@@ -49,6 +49,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	w.service = s
 
 	// setup the logger
 	errs := make(chan error, 5)
@@ -74,7 +75,6 @@ func main() {
 	// notify exitcode when finishing service / console
 	logger.Infof("Exiting service.")
 	if err != nil {
-		os.Exit(1)
+		logger.Error(err)
 	}
-	os.Exit(0)
 }
