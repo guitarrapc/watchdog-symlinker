@@ -72,7 +72,7 @@ func main() {
 	// run in terminal
 	err = s.Run()
 
-	// notify exitcode when finishing service / console
+	// notify Run error
 	logger.Infof("Exiting service.")
 	if err != nil {
 		logger.Error(err)
