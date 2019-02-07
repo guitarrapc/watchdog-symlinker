@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"path"
 	"regexp"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/guitarrapc/watchdog-symlinker/directory"
+	"github.com/guitarrapc/watchdog-symlinker/symlink"
 	"github.com/radovskyb/watcher"
 )
 
@@ -117,16 +117,21 @@ func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exi
 				logger.Info("cancel called in filewatcher ...")
 				return
 			case event := <-w.Event:
+				// replace symlink to generated file = latest
 				if event.Name() != e.symlinkName {
 					logger.Info(event)
 					source := path.Join(e.watchFolder, event.Name())
-					replaceSymlink(source, e.dest)
+					logger.Info("replacing symlink new: %s, old: %s ...", source, e.dest)
+					err = symlink.Replace(source, e.dest)
+					if err != nil {
+						exitError <- err
+					}
 				}
 			case err := <-w.Error:
 				logger.Error(err)
 				exitError <- err
 			case <-w.Closed:
-				logger.Info("file watcher ended because of watcher closed.")
+				logger.Info("file watcher ended because of watcher closed ...")
 				var complete struct{}
 				exit <- complete
 				return
@@ -146,60 +151,32 @@ func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exi
 func initSymlink(folderPath string, pattern string, dest string) (err error) {
 	// check folder exists
 	if !directory.ContainsFile(folderPath) {
-		logger.Infof("%s not contains files, skip initialize symlink ...\n", folderPath)
+		logger.Infof("%s not contains files, skip initialize symlink ...", folderPath)
 		return nil
 	}
 
 	// remove exisiting symlink (because re-link to latest log file, existing is waste)
-	if existsSymlink(dest) {
-		logger.Infof("Removing current Symlink: %s\n", dest)
-		deleteSymlink(dest)
+	if symlink.Exists(dest) {
+		logger.Infof("Removing current Symlink: %s", dest)
+		symlink.Delete(dest)
 	} else {
-		logger.Infof("Symlink %s not found ...\n", dest)
+		logger.Infof("Symlink %s not found ...", dest)
 	}
 
 	// list files
-	logger.Infof("Checking latest file ...\n")
+	logger.Infof("Checking latest file ...")
 	latest, err := directory.GetLatestFile(folderPath, pattern)
 	if err != nil {
 		return err
 	}
+
 	// map to latest
 	if latest.Path != "" {
-		logger.Infof("Found latest file: %s\n", latest.Path)
-		createSymlink(latest.Path, dest)
+		logger.Infof("Found latest file, link %s with source %s ...", latest.Path, dest)
+		err = symlink.Create(latest.Path, dest)
+		if err != nil {
+			logger.Infof("Failed to create symlink. %+v", err)
+		}
 	}
 	return
-}
-
-// symlink
-func replaceSymlink(filePath string, symlinkPath string) {
-	deleteSymlink(symlinkPath)
-	createSymlink(filePath, symlinkPath)
-}
-
-func deleteSymlink(symlinkPath string) {
-	if _, err := os.Lstat(symlinkPath); err == nil {
-		if err = os.Remove(symlinkPath); err != nil {
-			logger.Infof("failed to unlink: %+v\n", err)
-		}
-	} else if os.IsNotExist(err) {
-		logger.Infof("symlink not found, no need to unlink ...")
-	}
-}
-
-func existsSymlink(linkPath string) bool {
-	info, err := os.Lstat(linkPath)
-	if err != nil {
-		return false
-	}
-	return info.Mode()&os.ModeSymlink == os.ModeSymlink
-}
-
-func createSymlink(filePath string, symlinkPath string) {
-	logger.Infof("link %s with source %s\n", symlinkPath, filePath)
-	err := os.Symlink(filePath, symlinkPath)
-	if err != nil {
-		logger.Infof("Failed to create symlink. %+v\n", err)
-	}
 }
