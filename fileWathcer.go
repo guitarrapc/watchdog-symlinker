@@ -15,11 +15,21 @@ import (
 )
 
 type fileWatcher struct {
-	pattern            string
-	watchFolderPattern string
-	watchFolder        string
-	symlinkName        string
-	dest               string
+	folderPattern string
+	symlinkName   string
+	dest          string
+	option        fileWatcherOption
+}
+
+type fileWatcherOption struct {
+	filePattern string
+}
+
+type fileWatchHandler struct {
+	filePattern string
+	folder      string
+	symlinkName string
+	dest        string
 }
 
 // runWatcher
@@ -29,8 +39,8 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 	logger.Info("starting filewatcher ...")
 
 	// extract base path
-	logger.Infof("extract base path for %s ...", e.watchFolderPattern)
-	basePath, err := directory.GetBasePath(e.watchFolderPattern)
+	logger.Infof("extract base path for %s ...", e.folderPattern)
+	basePath, err := directory.GetBasePath(e.folderPattern)
 	if err != nil {
 		exitError <- err
 		return
@@ -38,7 +48,7 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 
 	// loop until target folder found
 	var directories []string
-	pattern := regexp.MustCompile(e.watchFolderPattern)
+	pattern := regexp.MustCompile(e.folderPattern)
 	t := time.NewTicker(3 * time.Second)
 	defer t.Stop()
 	found := false
@@ -63,8 +73,8 @@ L:
 				if isMatch {
 					d := path.Join(directory, e.symlinkName)
 					logger.Infof("start checking %s ...", d)
-					_e := fileWatcher{dest: d, pattern: e.pattern, symlinkName: e.symlinkName, watchFolder: directory}
-					go _e.mainHandler(ctx, exit, exitError)
+					h := fileWatchHandler{dest: d, filePattern: e.option.filePattern, symlinkName: e.symlinkName, folder: directory}
+					go h.run(ctx, exit, exitError)
 					found = true
 				}
 			}
@@ -76,12 +86,12 @@ L:
 	}
 }
 
-func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exitError chan<- error) {
+func (e *fileWatchHandler) run(ctx context.Context, exit chan<- struct{}, exitError chan<- error) {
 
 	defer logger.Info("exit fileWatcher mainhandler ...")
 
 	// initialize existing symlink
-	err := initSymlink(e.watchFolder, e.pattern, e.dest)
+	err := initSymlink(e.folder, e.filePattern, e.dest)
 	if err != nil {
 		exitError <- err
 		return
@@ -94,18 +104,19 @@ func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exi
 	defer w.Close()
 
 	// generate folder
-	if !directory.IsExists(e.watchFolder) {
-		logger.Info("target directory not found, generating %s...", e.watchFolder)
-		os.MkdirAll(e.watchFolder, os.ModePerm)
+	if !directory.IsExists(e.folder) {
+		logger.Info("target directory not found, generating %s...", e.folder)
+		os.MkdirAll(e.folder, os.ModePerm)
 	}
 
 	// add watch folder
-	if err := w.Add(e.watchFolder); err != nil {
+	if err := w.Add(e.folder); err != nil {
 		logger.Error(err)
 		exitError <- err
 		return
 	}
 
+	// list watch folder contents
 	logger.Info("List watching files ...")
 	var fileList []string
 	for path, f := range w.WatchedFiles() {
@@ -115,7 +126,8 @@ func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exi
 	}
 	logger.Info(strings.Join(fileList, "\n"))
 
-	r := regexp.MustCompile(e.pattern)
+	// monitor handler
+	r := regexp.MustCompile(e.filePattern)
 	w.AddFilterHook(watcher.RegexFilterHook(r, false))
 	go func() {
 		for {
@@ -127,8 +139,8 @@ func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exi
 				// replace symlink to generated file = latest
 				if event.Name() != e.symlinkName {
 					logger.Info(event)
-					source := path.Join(e.watchFolder, event.Name())
-					logger.Info("replacing symlink new: %s, old: %s ...", source, e.dest)
+					source := path.Join(e.folder, event.Name())
+					logger.Infof("Create/Replace symlink new: %s, old: %s ...", source, e.dest)
 					err = symlink.Replace(source, e.dest)
 					if err != nil {
 						exitError <- err
@@ -137,7 +149,7 @@ func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exi
 			case err := <-w.Error:
 				logger.Error(err)
 				logger.Info("Restarting new filewatcher")
-				go e.mainHandler(ctx, exit, exitError)
+				go e.run(ctx, exit, exitError)
 				return
 			case <-w.Closed:
 				logger.Info("file watcher ended because of watcher closed ...")
@@ -150,7 +162,7 @@ func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exi
 
 	go w.Wait()
 
-	logger.Infof("successfully start filewatcher %s ...", e.watchFolder)
+	logger.Infof("successfully start filewatcher %s ...", e.folder)
 	if err := w.Start(time.Second * 1); err != nil {
 		logger.Error(err)
 		exitError <- err

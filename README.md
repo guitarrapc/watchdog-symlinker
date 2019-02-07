@@ -19,10 +19,16 @@ pflag: help requested
 
 ### Console
 
-minimum configuration
+minimum configuration.
 
 ```shell
 watchdog-symlinker.exe -p ^.*.log$ -f C:/Users/guitarrapc/Downloads/watchdog/logfiles -s current.log
+```
+
+monitor until folder generated.
+
+```shell
+watchdog-symlinker.exe -p ^.*.log$ -f "^C:/Users/guitarrapc/Downloads/watchdog/logfiles/fugafuga/hogemoge.*/fugafuga" -s current.log
 ```
 
 ### Windows Service
