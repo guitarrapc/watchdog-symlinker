@@ -12,3 +12,7 @@ linters-settings:
     # call graph construction algorithm (cha, rta). In general, use cha for libraries,
     # and rta for programs with main packages. Default is cha.
     algo: rta
+
+linters:
+  disable:
+    - gosimple

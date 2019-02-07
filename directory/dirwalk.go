@@ -110,15 +110,3 @@ func getLastRune(s string, c int) string {
 	}
 	return s[j:]
 }
-
-func substring(str string, start int, length int) string {
-	if start < 0 || length <= 0 {
-		return str
-	}
-	r := []rune(str)
-	if start+length > len(r) {
-		return string(r[start:])
-	}
-
-	return string(r[start : start+length])
-}
