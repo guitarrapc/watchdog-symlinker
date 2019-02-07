@@ -6,9 +6,11 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/guitarrapc/watchdog-symlinker/directory"
 	"github.com/radovskyb/watcher"
 )
 
@@ -18,22 +20,73 @@ type latestFile struct {
 }
 
 type fileWatcher struct {
-	pattern     string
-	watchFolder string
-	symlinkName string
-	dest        string
+	pattern            string
+	watchFolderPattern string
+	watchFolder        string
+	symlinkName        string
+	dest               string
 }
 
 // runWatcher
 // @summary: file watcher to replace symlink to latest
 func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError chan<- error) {
 
-	defer logger.Info("exit fileWatcher")
-
 	logger.Info("starting filewatcher ...")
 
+	// extract base path
+	logger.Infof("extract base path for %s ...", e.watchFolderPattern)
+	basePath, err := directory.GetBasePath(e.watchFolderPattern)
+	if err != nil {
+		exitError <- err
+		return
+	}
+
+	// loop until target folder found
+	var directories []string
+	pattern := regexp.MustCompile(e.watchFolderPattern)
+	t := time.NewTicker(3 * time.Second)
+	defer t.Stop()
+	found := false
+L:
+	for {
+		select {
+		case <-t.C:
+			logger.Infof("walking directories in %s ...", basePath)
+			directories, err = directory.Dirwalk(basePath)
+			directories = append(directories, basePath)
+			if err != nil {
+				logger.Error(err)
+				logger.Info("retrying to find target folder check ...")
+				break
+			}
+
+			// check each directory
+			logger.Infof("matching directories %s ...", directories)
+			for _, directory := range directories {
+				isMatch := pattern.MatchString(directory)
+				logger.Infof("result %s: %s ...", strconv.FormatBool(isMatch), directory)
+				if isMatch {
+					d := path.Join(directory, e.symlinkName)
+					logger.Infof("start checking %s ...", d)
+					_e := fileWatcher{dest: d, pattern: e.pattern, symlinkName: e.symlinkName, watchFolder: directory}
+					go _e.mainHandler(ctx, exit, exitError)
+					found = true
+				}
+			}
+
+			if found {
+				break L
+			}
+		}
+	}
+}
+
+func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exitError chan<- error) {
+
+	defer logger.Info("exit fileWatcher mainhandler ...")
+
 	// initialize existing symlink
-	err := e.initializeSymlink()
+	err := e.initSymlink(e.watchFolder, e.pattern, e.dest)
 	if err != nil {
 		exitError <- err
 		return
@@ -52,10 +105,10 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 		return
 	}
 
-	logger.Info("List current files in watchfolder ...")
+	logger.Info("List watching files ...")
 	var fileList []string
 	for path, f := range w.WatchedFiles() {
-		if !f.IsDir() {
+		if !f.IsDir() && f.Name() != e.symlinkName {
 			fileList = append(fileList, path)
 		}
 	}
@@ -91,38 +144,38 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 		w.Wait()
 	}()
 
-	logger.Infof("successfully start filewatcher ... %s\n", e.watchFolder)
+	logger.Infof("successfully start filewatcher %s ...", e.watchFolder)
 	if err := w.Start(time.Second * 1); err != nil {
 		logger.Error(err)
 		exitError <- err
 	}
 }
 
-func (e *fileWatcher) initializeSymlink() (err error) {
+func (e *fileWatcher) initSymlink(folderPath string, pattern string, dest string) (err error) {
 	// check folder exists
-	if !e.containsFile(e.watchFolder) {
-		logger.Infof("%s is empty, skip initialize symlink ...\n", e.watchFolder)
+	if !e.containsFile(folderPath) {
+		logger.Infof("%s not contains files, skip initialize symlink ...\n", folderPath)
 		return nil
 	}
 
 	// remove exisiting symlink (because re-link to latest log file, existing is waste)
-	if e.existsSymlink(e.dest) {
-		logger.Infof("Removing current Symlink: %s\n", e.dest)
-		e.deleteSymlink(e.dest)
+	if e.existsSymlink(dest) {
+		logger.Infof("Removing current Symlink: %s\n", dest)
+		e.deleteSymlink(dest)
 	} else {
-		logger.Infof("Symlink %s not found ...\n", e.dest)
+		logger.Infof("Symlink %s not found ...\n", dest)
 	}
 
 	// list files
 	logger.Infof("Checking latest file ...\n")
-	latest, err := e.getLatestFile(e.watchFolder, e.pattern)
+	latest, err := e.getLatestFile(folderPath, pattern)
 	if err != nil {
 		return err
 	}
 	// map to latest
 	if latest.path != "" {
 		logger.Infof("Found latest file: %s\n", latest.path)
-		e.createSymlink(latest.path, e.dest)
+		e.createSymlink(latest.path, dest)
 	}
 	return
 }
@@ -165,7 +218,12 @@ func (e *fileWatcher) containsFile(dir string) bool {
 	if err != nil {
 		return false
 	}
-	return len(files) > 0
+	for _, file := range files {
+		if !file.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *fileWatcher) getLatestFile(dir string, pattern string) (latest latestFile, err error) {

@@ -22,7 +22,7 @@ pflag: help requested
 minimum configuration
 
 ```shell
-watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log
+watchdog-symlinker.exe -p ^.*.log$ -f C:/Users/guitarrapc/Downloads/watchdog/logfiles -s current.log
 ```
 
 ### Windows Service
@@ -30,13 +30,13 @@ watchdog-symlinker.exe -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\log
 combination of install and start service.
 
 ```shell
-watchdog-symlinker.exe -c install -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log && watchdog-symlinker.exe -c start
+watchdog-symlinker.exe -c install -p ^.*.log$ -f C:/Users/guitarrapc/Downloads/watchdog/logfiles -s current.log && watchdog-symlinker.exe -c start
 ```
 
 install Service with arguments.
 
 ```shell
-watchdog-symlinker.exe -c install -p ^.*.log$ -f C:\Users\guitarrapc\Downloads\watchdog\logfiles -s current.log
+watchdog-symlinker.exe -c install -p ^.*.log$ -f C:/Users/guitarrapc/Downloads/watchdog/logfiles -s current.log
 ```
 
 Start Service
