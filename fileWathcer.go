@@ -56,10 +56,10 @@ L:
 			}
 
 			// check each directory
-			logger.Infof("matching directories %s ...", directories)
+			logger.Infof("matching directories with pattern %s ...", pattern.String())
 			for _, directory := range directories {
 				isMatch := pattern.MatchString(directory)
-				logger.Infof("result %s: %s ...", strconv.FormatBool(isMatch), directory)
+				logger.Infof("(%s) %s", strconv.FormatBool(isMatch), directory)
 				if isMatch {
 					d := path.Join(directory, e.symlinkName)
 					logger.Infof("start checking %s ...", d)
