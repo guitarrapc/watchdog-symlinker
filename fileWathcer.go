@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"path"
 	"regexp"
 	"strconv"
@@ -92,6 +93,12 @@ func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exi
 	w.FilterOps(watcher.Create)
 	defer w.Close()
 
+	// generate folder
+	if !directory.IsExists(e.watchFolder) {
+		logger.Info("target directory not found, generating %s...", e.watchFolder)
+		os.MkdirAll(e.watchFolder, os.ModePerm)
+	}
+
 	// add watch folder
 	if err := w.Add(e.watchFolder); err != nil {
 		logger.Error(err)
@@ -129,7 +136,9 @@ func (e *fileWatcher) mainHandler(ctx context.Context, exit chan<- struct{}, exi
 				}
 			case err := <-w.Error:
 				logger.Error(err)
-				exitError <- err
+				logger.Info("Restarting new filewatcher")
+				go e.mainHandler(ctx, exit, exitError)
+				return
 			case <-w.Closed:
 				logger.Info("file watcher ended because of watcher closed ...")
 				var complete struct{}
@@ -172,7 +181,7 @@ func initSymlink(folderPath string, pattern string, dest string) (err error) {
 
 	// map to latest
 	if latest.Path != "" {
-		logger.Infof("Found latest file, link %s with source %s ...", latest.Path, dest)
+		logger.Infof("Found latest file, source %s link as %s...", latest.Path, dest)
 		err = symlink.Create(latest.Path, dest)
 		if err != nil {
 			logger.Infof("Failed to create symlink. %+v", err)
