@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/kardianos/service"
 	flag "github.com/spf13/pflag"
@@ -40,7 +41,15 @@ func main() {
 
 	// create service
 	w := &watchdog{filewatcher: *filewatcher, healthchecks: []healthcheck{httphealthcheck, statsdhealthcheck}}
-	svcConfig.Arguments = []string{"-f", w.filewatcher.option.filePattern, "-d", w.filewatcher.directoryPattern, "-s", w.filewatcher.symlinkName}
+	svcConfig.Arguments = []string{
+		"-f", w.filewatcher.option.filePattern,
+		"-d", w.filewatcher.directoryPattern,
+		"-s", w.filewatcher.symlinkName,
+		"--healthcheckHttpEnabled", strconv.FormatBool(httphealthcheck.enable),
+		"--healthcheckHttpAddr", httphealthcheck.addr,
+		"--healthcheckStatsdEnabled", strconv.FormatBool(statsdhealthcheck.enable),
+		"--healthcheckStatsdAddr", statsdhealthcheck.addr,
+	}
 	s, err := service.New(w, svcConfig)
 	if err != nil {
 		log.Fatal(err)
