@@ -40,7 +40,7 @@ func main() {
 
 	// create service
 	w := &watchdog{filewatcher: *filewatcher, healthchecks: []healthcheck{httphealthcheck, statsdhealthcheck}}
-	svcConfig.Arguments = []string{"-p", w.filewatcher.option.filePattern, "-f", w.filewatcher.directoryPattern, "-s", w.filewatcher.symlinkName}
+	svcConfig.Arguments = []string{"-f", w.filewatcher.option.filePattern, "-d", w.filewatcher.directoryPattern, "-s", w.filewatcher.symlinkName}
 	s, err := service.New(w, svcConfig)
 	if err != nil {
 		log.Fatal(err)
