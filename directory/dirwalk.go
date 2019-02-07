@@ -42,28 +42,28 @@ func getBasePath(path string) (string, error) {
 	}
 
 	var b strings.Builder
+	start := false
 	begin := false
-
 	var s string
 	for _, a := range asts {
+		if a.IsStart {
+			start = true
+		}
+		if start && a.IsRune {
+			b.WriteString(a.Value)
+			begin = true
+		}
 		if begin && !a.IsRune {
 			// check path is valid and fix
 			s = b.String()
 			if isExists(s) {
 				break
 			}
-
 			if getLastRune(s, 1) != "/" {
 				i := strings.LastIndex(s, "/") + 1
 				s = string(s[:i])
 			}
 			break
-		}
-		if begin && a.IsRune {
-			b.WriteString(a.Value)
-		}
-		if a.IsStart {
-			begin = true
 		}
 	}
 
