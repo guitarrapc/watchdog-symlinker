@@ -65,7 +65,7 @@ loop:
 					d := path.Join(directory, e.symlinkName)
 					logger.Infof("start checking %s ...", d)
 					h := filewatch.Handler{Dest: d, FilePattern: e.option.filePattern, SymlinkName: e.symlinkName, Directory: directory, Logger: logger}
-					if e.option.useFileEvent && runtime.GOOS == "windows" {
+					if e.option.useFileEvent && (runtime.GOOS == "windows" || runtime.GOOS == "linux") {
 						go h.RunEvent(ctx, exit, exitError)
 					} else {
 						go h.Run(ctx, exit, exitError)
