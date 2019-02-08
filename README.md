@@ -128,5 +128,5 @@ go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 run lint.
 
 ```shell
-$ golangci-lint run
+golangci-lint run
 ```

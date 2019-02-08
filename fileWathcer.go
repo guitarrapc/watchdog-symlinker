@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/guitarrapc/watchdog-symlinker/directory"
 	"github.com/guitarrapc/watchdog-symlinker/symlink"
 	"github.com/radovskyb/watcher"
+	"github.com/rjeczalik/notify"
 )
 
 type fileWatcher struct {
@@ -73,7 +75,8 @@ loop:
 					d := path.Join(directory, e.symlinkName)
 					logger.Infof("start checking %s ...", d)
 					h := fileWatchHandler{dest: d, filePattern: e.option.filePattern, symlinkName: e.symlinkName, directory: directory}
-					go h.run(ctx, exit, exitError)
+					//go h.run(ctx, exit, exitError)
+					go h.runEvent(ctx, exit, exitError)
 					found = true
 				}
 			}
@@ -85,9 +88,97 @@ loop:
 	}
 }
 
+func (e *fileWatchHandler) runEvent(ctx context.Context, exit chan<- struct{}, exitError chan<- error) {
+
+	defer logger.Info("exit file event Watcher runEvent ...")
+
+	// initialize existing symlink
+	err := initSymlink(e.directory, e.filePattern, e.dest)
+	if err != nil {
+		exitError <- err
+		return
+	}
+
+	// Make the channel buffered to ensure no event is dropped. Notify will drop
+	// an event if the receiver is not able to keep up the sending pace.
+	c := make(chan notify.EventInfo, 1)
+	defer close(c)
+
+	// Set up a watchpoint listening on events
+	// Dispatch each create events separately to c.
+	if err := notify.Watch(e.directory, c, notify.FileNotifyChangeFileName); err != nil {
+		logger.Error(err)
+		exitError <- err
+		return
+	}
+	defer notify.Stop(c)
+
+	r := regexp.MustCompile(e.filePattern)
+
+	// monitor handler
+	var current os.FileInfo
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("cancel called in filewatcher ...")
+			return
+		case event := <-c:
+			source := event.Path()
+			fileName := filepath.Base(source)
+			if r.MatchString(fileName) {
+				switch event.Event() {
+				case notify.FileActionAdded:
+					logger.Info(event)
+					fi, err := os.Stat(source)
+					if err != nil {
+						logger.Errorf("error happen when checking %s. %s", source, err)
+						break
+					}
+					// replace symlink to generated file = latest
+					if fileName != e.symlinkName {
+						logger.Info(event)
+						logger.Infof("Create/Replace symlink new: %s, old: %s ...", source, e.dest)
+						err = symlink.Replace(source, e.dest)
+						if err != nil {
+							exitError <- err
+						}
+						current = fi
+					}
+				case notify.FileActionRemoved:
+					logger.Info(event)
+					if fileName == e.symlinkName {
+						logger.Info("Restarting new filewatcher")
+						go e.runEvent(ctx, exit, exitError)
+						return
+					}
+				case notify.FileActionRenamedNewName:
+					logger.Info(event)
+					fi, err := os.Stat(event.Path())
+					if err != nil {
+						logger.Errorf("error happen when checking %s. %s", event.Path(), err)
+						break
+					}
+					if current == nil || fi.ModTime().After(current.ModTime()) {
+						// replace symlink to renamed file
+						if fileName != e.symlinkName {
+							logger.Info(event)
+							logger.Infof("Create/Replace symlink new: %s, old: %s ...", source, e.dest)
+							err = symlink.Replace(source, e.dest)
+							if err != nil {
+								exitError <- err
+							}
+							current = fi
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 func (e *fileWatchHandler) run(ctx context.Context, exit chan<- struct{}, exitError chan<- error) {
 
-	defer logger.Info("exit fileWatcher mainhandler ...")
+	defer logger.Info("exit file non-event Watcher run ...")
 
 	// initialize existing symlink
 	err := initSymlink(e.directory, e.filePattern, e.dest)
