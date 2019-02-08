@@ -29,9 +29,10 @@ func main() {
 	flag.StringVarP(&filewatcher.option.filePattern, "file", "f", "", "specify file name pattern to watch changes. (regex string)")
 	flag.StringVarP(&filewatcher.directoryPattern, "directory", "d", "", "specify full path to watch directory. (regex string)")
 	flag.StringVarP(&filewatcher.symlinkName, "symlink", "s", "", "specify symlink name.")
-	flag.BoolVar(&httphealthcheck.enable, "healthcheckHttpEnabled", true, "Use local http healthcheck or not.")
+	flag.BoolVar(&filewatcher.option.useFileEvent, "useFileEvent", true, "use file event instead of walk directory.")
+	flag.BoolVar(&httphealthcheck.enable, "healthcheckHttpEnabled", true, "use local http healthcheck or not.")
 	flag.StringVar(&httphealthcheck.addr, "healthcheckHttpAddr", "127.0.0.1:12250", "specify http healthcheck waiting host:port.")
-	flag.BoolVar(&statsdhealthcheck.enable, "healthcheckStatsdEnabled", true, "Use datadog statsd healthcheck or not.")
+	flag.BoolVar(&statsdhealthcheck.enable, "healthcheckStatsdEnabled", true, "use datadog statsd healthcheck or not.")
 	flag.StringVar(&statsdhealthcheck.addr, "healthcheckStatsdAddr", "127.0.0.1:8125", "specify statsd healthcheck waiting host:port.")
 	flag.Parse()
 	if *command == "" && (filewatcher.option.filePattern == "" || filewatcher.directoryPattern == "" || filewatcher.symlinkName == "") {
@@ -42,9 +43,10 @@ func main() {
 	// create service
 	w := &watchdog{filewatcher: *filewatcher, healthchecks: []healthcheck{httphealthcheck, statsdhealthcheck}}
 	svcConfig.Arguments = []string{
-		"-f", w.filewatcher.option.filePattern,
-		"-d", w.filewatcher.directoryPattern,
-		"-s", w.filewatcher.symlinkName,
+		"-f", filewatcher.option.filePattern,
+		"-d", filewatcher.directoryPattern,
+		"-s", filewatcher.symlinkName,
+		"--useFileEvent", strconv.FormatBool(filewatcher.option.useFileEvent),
 		"--healthcheckHttpEnabled", strconv.FormatBool(httphealthcheck.enable),
 		"--healthcheckHttpAddr", httphealthcheck.addr,
 		"--healthcheckStatsdEnabled", strconv.FormatBool(statsdhealthcheck.enable),

@@ -23,7 +23,8 @@ type fileWatcher struct {
 }
 
 type fileWatcherOption struct {
-	filePattern string
+	filePattern  string
+	useFileEvent bool
 }
 
 type fileWatchHandler struct {
@@ -75,8 +76,11 @@ loop:
 					d := path.Join(directory, e.symlinkName)
 					logger.Infof("start checking %s ...", d)
 					h := fileWatchHandler{dest: d, filePattern: e.option.filePattern, symlinkName: e.symlinkName, directory: directory}
-					//go h.run(ctx, exit, exitError)
-					go h.runEvent(ctx, exit, exitError)
+					if e.option.useFileEvent {
+						go h.runEvent(ctx, exit, exitError)
+					} else {
+						go h.run(ctx, exit, exitError)
+					}
 					found = true
 				}
 			}
@@ -125,16 +129,36 @@ func (e *fileWatchHandler) runEvent(ctx context.Context, exit chan<- struct{}, e
 		case event := <-c:
 			source := event.Path()
 			fileName := filepath.Base(source)
-			if r.MatchString(fileName) {
-				switch event.Event() {
-				case notify.FileActionAdded:
+			if !r.MatchString(fileName) {
+				return
+			}
+			switch event.Event() {
+			case notify.FileActionAdded:
+				logger.Info(event)
+				fi, err := os.Stat(source)
+				if err != nil {
+					logger.Errorf("error happen when checking %s. %s", source, err)
+					return
+				}
+				// replace symlink to generated file = latest
+				if fileName != e.symlinkName {
 					logger.Info(event)
-					fi, err := os.Stat(source)
+					logger.Infof("Create/Replace symlink new: %s, old: %s ...", source, e.dest)
+					err = symlink.Replace(source, e.dest)
 					if err != nil {
-						logger.Errorf("error happen when checking %s. %s", source, err)
-						break
+						exitError <- err
 					}
-					// replace symlink to generated file = latest
+					current = fi
+				}
+			case notify.FileActionRenamedNewName:
+				logger.Info(event)
+				fi, err := os.Stat(event.Path())
+				if err != nil {
+					logger.Errorf("error happen when checking %s. %s", event.Path(), err)
+					return
+				}
+				if current == nil || fi.ModTime().After(current.ModTime()) {
+					// replace symlink to renamed file
 					if fileName != e.symlinkName {
 						logger.Info(event)
 						logger.Infof("Create/Replace symlink new: %s, old: %s ...", source, e.dest)
@@ -143,32 +167,6 @@ func (e *fileWatchHandler) runEvent(ctx context.Context, exit chan<- struct{}, e
 							exitError <- err
 						}
 						current = fi
-					}
-				case notify.FileActionRemoved:
-					logger.Info(event)
-					if fileName == e.symlinkName {
-						logger.Info("Restarting new filewatcher")
-						go e.runEvent(ctx, exit, exitError)
-						return
-					}
-				case notify.FileActionRenamedNewName:
-					logger.Info(event)
-					fi, err := os.Stat(event.Path())
-					if err != nil {
-						logger.Errorf("error happen when checking %s. %s", event.Path(), err)
-						break
-					}
-					if current == nil || fi.ModTime().After(current.ModTime()) {
-						// replace symlink to renamed file
-						if fileName != e.symlinkName {
-							logger.Info(event)
-							logger.Infof("Create/Replace symlink new: %s, old: %s ...", source, e.dest)
-							err = symlink.Replace(source, e.dest)
-							if err != nil {
-								exitError <- err
-							}
-							current = fi
-						}
 					}
 				}
 			}

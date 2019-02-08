@@ -10,10 +10,11 @@ Usage of watchdog-symlinker.exe:
   -d, --directory string               specify full path to watch directory. (regex string)
   -f, --file string                    specify file name pattern to watch changes. (regex string)
       --healthcheckHttpAddr string     specify http healthcheck waiting host:port. (default "127.0.0.1:12250")
-      --healthcheckHttpEnabled         Use local http healthcheck or not. (default true)
+      --healthcheckHttpEnabled         use local http healthcheck or not. (default true)
       --healthcheckStatsdAddr string   specify statsd healthcheck waiting host:port. (default "127.0.0.1:8125")
-      --healthcheckStatsdEnabled       Use datadog statsd healthcheck or not. (default true)
+      --healthcheckStatsdEnabled       use datadog statsd healthcheck or not. (default true)
   -s, --symlink string                 specify symlink name.
+      --useFileEvent                   use file event instead of walk directory. (default true)
 pflag: help requested
 ```
 
