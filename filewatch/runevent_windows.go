@@ -31,7 +31,7 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 
 	// Set up a watchpoint listening on events
 	// Dispatch each create events separately to c.
-	if err := notify.Watch(e.Directory, c, notify.FileNotifyChangeFileName); err != nil {
+	if err := notify.Watch(e.Directory, c, notify.FileNotifyChangeFileName, notify.FileNotifyChangeCreation); err != nil {
 		e.Logger.Error(err)
 		exitError <- err
 		return
