@@ -95,6 +95,14 @@
   version = "v1.0.5"
 
 [[projects]]
+  digest = "1:31d83d1b1c288073c91abadee3caec87de2a1fb5dbe589039264a802e67a26b8"
+  name = "github.com/rjeczalik/notify"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "69d839f37b13a8cb7a78366f7633a4071cb43be7"
+  version = "v0.9.2"
+
+[[projects]]
   digest = "1:c1b1102241e7f645bc8e0c22ae352e8f0dc6484b6cb4d132fa9f24174e0119e2"
   name = "github.com/spf13/pflag"
   packages = ["."]
@@ -149,6 +157,7 @@
     "github.com/gin-gonic/gin",
     "github.com/kardianos/service",
     "github.com/radovskyb/watcher",
+    "github.com/rjeczalik/notify",
     "github.com/spf13/pflag",
   ]
   solver-name = "gps-cdcl"
