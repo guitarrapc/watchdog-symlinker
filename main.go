@@ -9,6 +9,12 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+// version info
+var (
+	Version  string
+	Revision string
+)
+
 // global logger
 var logger service.Logger
 
