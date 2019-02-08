@@ -4,7 +4,6 @@ package filewatch
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"regexp"
 
@@ -41,7 +40,6 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 	r := regexp.MustCompile(e.FilePattern)
 
 	// monitor handler
-	var current os.FileInfo
 	for {
 		select {
 		case <-ctx.Done():
@@ -54,11 +52,6 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 				return
 			}
 			e.Logger.Info(event)
-			fi, err := os.Stat(source)
-			if err != nil {
-				e.Logger.Errorf("error happen when checking %s. %s", source, err)
-				return
-			}
 			// replace symlink to generated file = latest
 			if fileName != e.SymlinkName {
 				e.Logger.Info(event)
@@ -67,7 +60,6 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 				if err != nil {
 					exitError <- err
 				}
-				current = fi
 			}
 		}
 	}
