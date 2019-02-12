@@ -51,7 +51,7 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 			source := event.Path()
 			fileName := filepath.Base(source)
 			if !r.MatchString(fileName) {
-				return
+				break
 			}
 			switch event.Event() {
 			case notify.FileActionAdded:
@@ -59,7 +59,7 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 				fi, err := os.Stat(source)
 				if err != nil {
 					e.Logger.Errorf("error happen when checking %s. %s", source, err)
-					return
+					break
 				}
 				// replace symlink to generated file = latest
 				if fileName != e.SymlinkName {
@@ -76,7 +76,7 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 				fi, err := os.Stat(event.Path())
 				if err != nil {
 					e.Logger.Errorf("error happen when checking %s. %s", event.Path(), err)
-					return
+					break
 				}
 				if current == nil || fi.ModTime().After(current.ModTime()) {
 					// replace symlink to renamed file

@@ -49,7 +49,7 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 			source := event.Path()
 			fileName := filepath.Base(source)
 			if !r.MatchString(fileName) {
-				return
+				break
 			}
 			e.Logger.Info(event)
 			// replace symlink to generated file = latest
