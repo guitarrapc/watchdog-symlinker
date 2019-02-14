@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/guitarrapc/watchdog-symlinker/directory"
+
 	"github.com/guitarrapc/watchdog-symlinker/symlink"
 	"github.com/rjeczalik/notify"
 )
@@ -29,14 +31,26 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 	c := make(chan notify.EventInfo, 1)
 	defer close(c)
 
+	create := make(chan notify.EventInfo, 1)
+	defer close(c)
+
 	// Set up a watchpoint listening on events
-	// Dispatch each create events separately to c.
-	if err := notify.Watch(e.Directory, c, notify.FileNotifyChangeFileName, notify.FileNotifyChangeCreation); err != nil {
-		e.Logger.Error(err)
-		exitError <- err
-		return
+	// Dispatch each create events separately to channel.
+	if e.UseFileEvent {
+		if err := notify.Watch(e.Directory, c, notify.FileNotifyChangeFileName, notify.FileNotifyChangeCreation); err != nil {
+			e.Logger.Error(err)
+			exitError <- err
+			return
+		}
+		defer notify.Stop(c)
+	} else {
+		if err = notify.Watch(e.Directory, create, notify.Create); err != nil {
+			e.Logger.Error(err)
+			exitError <- err
+			return
+		}
+		defer notify.Stop(create)
 	}
-	defer notify.Stop(c)
 
 	r := regexp.MustCompile(e.FilePattern)
 
@@ -47,6 +61,31 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 		case <-ctx.Done():
 			e.Logger.Info("cancel called in filewatcher ...")
 			return
+		case event := <-create:
+			e.Logger.Infof("create event detected: %s", event)
+			if !directory.IsExists(event.Path()) {
+				e.Logger.Info(event)
+				source := event.Path()
+				fileName := filepath.Base(source)
+				if !r.MatchString(fileName) {
+					break
+				}
+				fi, err := os.Stat(source)
+				if err != nil {
+					e.Logger.Errorf("error happen when checking %s. %s", source, err)
+					break
+				}
+				// replace symlink to generated file = latest
+				if fileName != e.SymlinkName {
+					e.Logger.Info(event)
+					e.Logger.Infof("Create/Replace symlink new: %s, old: %s ...", source, e.Dest)
+					err = symlink.Replace(source, e.Dest)
+					if err != nil {
+						exitError <- err
+					}
+					current = fi
+				}
+			}
 		case event := <-c:
 			source := event.Path()
 			fileName := filepath.Base(source)
@@ -54,7 +93,7 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 				break
 			}
 			switch event.Event() {
-			case notify.FileActionAdded:
+			case notify.FileActionAdded | notify.FileActionRenamedNewName:
 				e.Logger.Info(event)
 				fi, err := os.Stat(source)
 				if err != nil {
@@ -73,9 +112,9 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 				}
 			case notify.FileActionRenamedNewName:
 				e.Logger.Info(event)
-				fi, err := os.Stat(event.Path())
+				fi, err := os.Stat(source)
 				if err != nil {
-					e.Logger.Errorf("error happen when checking %s. %s", event.Path(), err)
+					e.Logger.Errorf("error happen when checking %s. %s", source, err)
 					break
 				}
 				if current == nil || fi.ModTime().After(current.ModTime()) {
