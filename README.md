@@ -10,11 +10,11 @@ Usage of watchdog-symlinker.exe:
   -d, --directory string               specify full path to watch directory. (regex string)
   -f, --file string                    specify file name pattern to watch changes. (regex string)
       --healthcheckHttpAddr string     specify http healthcheck waiting host:port. (default "127.0.0.1:12250")
-      --healthcheckHttpEnabled         use local http healthcheck or not. (default true)
+      --healthcheckHttpDisabled        disable local http healthcheck.
       --healthcheckStatsdAddr string   specify statsd healthcheck waiting host:port. (default "127.0.0.1:8125")
-      --healthcheckStatsdEnabled       use datadog statsd healthcheck or not. (default true)
+      --healthcheckStatsdDisabled      disable datadog statsd healthcheck.
   -s, --symlink string                 specify symlink name.
-      --useFileEvent                   use file event instead of walk directory. (default true)
+      --useFileWalk                    use walk directory instead of file event.
 pflag: help requested
 ```
 
@@ -90,10 +90,10 @@ You can customize behaiviour with cli arguments.
 
 httphealtcheck is default enabled on `127.0.0.1:12250`.
 
-use `--healthcheckHttpEnabled` to disable healthcheck.
+use `--healthcheckHttpDisabled` to disable healthcheck.
 
 ```shell
-watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --healthcheckHttpEnabled false
+watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --healthcheckHttpDisabled
 ```
 
 use `--healthcheckHttpAddr` to change httphealthcheck waitinig addr. sample will change to `0.0.0.0:8080`
@@ -106,10 +106,10 @@ watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/l
 
 datadog statsdhealtcheck is default enabled on `127.0.0.1:8125`.
 
-use `--healthcheckStatsdEnabled` to disable healthcheck.
+use `--healthcheckStatsdDisabled` to disable healthcheck.
 
 ```shell
-watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --healthcheckStatsdEnabled false
+watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --healthcheckStatsdDisabled
 ```
 
 use `--healthcheckStatsdAddr` to change statsdhealthcheck waitinig addr. sample will change to `127.0.0.1:8127`

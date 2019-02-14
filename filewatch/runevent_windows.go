@@ -19,6 +19,9 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 
 	defer e.Logger.Info("exit file event Watcher runEvent ...")
 
+	// feature flag
+	useFileEvent := false
+
 	// initialize existing symlink
 	err := e.initSymlink(e.Directory, e.FilePattern, e.Dest)
 	if err != nil {
@@ -87,10 +90,11 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 			}
 			current = fi
 		case event := <-c:
-			e.Logger.Infof("file event detected: %s", event)
-			if !e.UseFileEvent {
-				return
+			if !useFileEvent {
+				e.Logger.Infof("file event detected but skip: %s", event)
+				break
 			}
+			e.Logger.Infof("file event detected: %s", event)
 			source := event.Path()
 			fileName := filepath.Base(source)
 			if !r.MatchString(fileName) {

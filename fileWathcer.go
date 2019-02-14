@@ -19,8 +19,8 @@ type fileWatcher struct {
 }
 
 type fileWatcherOption struct {
-	filePattern  string
-	useFileEvent bool
+	filePattern string
+	useFileWalk bool
 }
 
 // runWatcher
@@ -72,7 +72,7 @@ loop:
 						Logger:       logger,
 						UseFileEvent: false,
 					}
-					if e.option.useFileEvent && (runtime.GOOS == "windows" || runtime.GOOS == "linux") {
+					if !e.option.useFileWalk && (runtime.GOOS == "windows" || runtime.GOOS == "linux") {
 						go h.RunEvent(ctx, exit, exitError)
 					} else {
 						go h.Run(ctx, exit, exitError)

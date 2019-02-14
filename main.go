@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/kardianos/service"
 	flag "github.com/spf13/pflag"
@@ -35,10 +34,10 @@ func main() {
 	flag.StringVarP(&filewatcher.option.filePattern, "file", "f", "", "specify file name pattern to watch changes. (regex string)")
 	flag.StringVarP(&filewatcher.directoryPattern, "directory", "d", "", "specify full path to watch directory. (regex string)")
 	flag.StringVarP(&filewatcher.symlinkName, "symlink", "s", "", "specify symlink name.")
-	flag.BoolVar(&filewatcher.option.useFileEvent, "useFileEvent", true, "use file event instead of walk directory.")
-	flag.BoolVar(&httphealthcheck.enable, "healthcheckHttpEnabled", true, "use local http healthcheck or not.")
+	flag.BoolVar(&filewatcher.option.useFileWalk, "useFileWalk", false, "use walk directory instead of file event.")
+	flag.BoolVar(&httphealthcheck.disable, "healthcheckHttpDisabled", false, "disable local http healthcheck.")
 	flag.StringVar(&httphealthcheck.addr, "healthcheckHttpAddr", "127.0.0.1:12250", "specify http healthcheck waiting host:port.")
-	flag.BoolVar(&statsdhealthcheck.enable, "healthcheckStatsdEnabled", true, "use datadog statsd healthcheck or not.")
+	flag.BoolVar(&statsdhealthcheck.disable, "healthcheckStatsdDisabled", false, "disable datadog statsd healthcheck.")
 	flag.StringVar(&statsdhealthcheck.addr, "healthcheckStatsdAddr", "127.0.0.1:8125", "specify statsd healthcheck waiting host:port.")
 	flag.Parse()
 	if *command == "" && (filewatcher.option.filePattern == "" || filewatcher.directoryPattern == "" || filewatcher.symlinkName == "") {
@@ -52,11 +51,17 @@ func main() {
 		"-f", filewatcher.option.filePattern,
 		"-d", filewatcher.directoryPattern,
 		"-s", filewatcher.symlinkName,
-		"--useFileEvent", strconv.FormatBool(filewatcher.option.useFileEvent),
-		"--healthcheckHttpEnabled", strconv.FormatBool(httphealthcheck.enable),
 		"--healthcheckHttpAddr", httphealthcheck.addr,
-		"--healthcheckStatsdEnabled", strconv.FormatBool(statsdhealthcheck.enable),
 		"--healthcheckStatsdAddr", statsdhealthcheck.addr,
+	}
+	if filewatcher.option.useFileWalk {
+		svcConfig.Arguments = append(svcConfig.Arguments, "--useFileWalk")
+	}
+	if httphealthcheck.disable {
+		svcConfig.Arguments = append(svcConfig.Arguments, "--healthcheckHttpDisabled")
+	}
+	if statsdhealthcheck.disable {
+		svcConfig.Arguments = append(svcConfig.Arguments, "--healthcheckStatsdDisabled")
 	}
 	s, err := service.New(w, svcConfig)
 	if err != nil {

@@ -14,12 +14,12 @@ type (
 		run(ctx context.Context, exitError chan<- error)
 	}
 	healthcheckhttp struct {
-		enable bool
-		addr   string
+		disable bool
+		addr    string
 	}
 	healthcheckstatsd struct {
-		enable bool
-		addr   string
+		disable bool
+		addr    string
 	}
 )
 
@@ -27,7 +27,7 @@ func (h *healthcheckhttp) run(ctx context.Context, exitError chan<- error) {
 	defer logger.Info("exit healthcheckhttp")
 
 	// validate
-	if !h.enable {
+	if h.disable {
 		logger.Info("healthcheckhttp is disabled ...")
 		return
 	}
@@ -57,7 +57,7 @@ func (h *healthcheckstatsd) run(ctx context.Context, exitError chan<- error) {
 	defer logger.Info("exit healthcheckstatsd")
 
 	// validate
-	if !h.enable {
+	if h.disable {
 		logger.Info("healthcheckstatsd is disabled ...")
 		return
 	}
