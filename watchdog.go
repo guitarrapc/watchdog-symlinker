@@ -71,13 +71,14 @@ func (w *watchdog) Stop(s service.Service) error {
 	close(w.exitError)
 	logger.Info("successfully stopped ...")
 
-	// exit process
-	if w.err != nil {
-		logger.Info("exiting watchdog-symlinker with exitcode 1 ...")
-		os.Exit(1)
+	if service.Interactive() {
+		// exit process
+		if w.err != nil {
+			logger.Info("exiting watchdog-symlinker with exitcode 1 ...")
+			os.Exit(1)
+		}
+		logger.Info("exiting watchdog-symlinker with exitcode 0 ...")
+		os.Exit(0)
 	}
-	logger.Info("exiting watchdog-symlinker with exitcode 0 ...")
-	os.Exit(0)
-
-	return nil
+	return w.err
 }
