@@ -29,28 +29,42 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 		return
 	}
 
-	// Make the channel buffered to ensure no event is dropped. Notify will drop
-	// an event if the receiver is not able to keep up the sending pace.
-	c := make(chan notify.EventInfo, 1)
-	defer close(c)
-
-	create := make(chan notify.EventInfo, 1)
-	defer close(create)
-
 	// Set up a watchpoint listening on events
 	// Dispatch each create events separately to channel.
-	if err := notify.Watch(e.Directory, c, notify.FileNotifyChangeFileName, notify.FileNotifyChangeCreation); err != nil {
+	fileCreate := make(chan notify.EventInfo, 1)
+	if err := notify.Watch(e.Directory, fileCreate, notify.FileNotifyChangeFileName); err != nil {
 		e.Logger.Error(err)
 		exitError <- err
 		return
 	}
-	defer notify.Stop(c)
+	defer func() {
+		notify.Stop(fileCreate)
+		close(fileCreate)
+	}()
+
+	create := make(chan notify.EventInfo, 1)
 	if err = notify.Watch(e.Directory, create, notify.Create); err != nil {
 		e.Logger.Error(err)
 		exitError <- err
 		return
 	}
-	defer notify.Stop(create)
+	defer func() {
+		notify.Stop(create)
+		close(create)
+	}()
+
+	// Set up a watchpoint listening on events
+	// Dispatch each create events separately to channel.
+	other := make(chan notify.EventInfo, 1)
+	if err := notify.Watch(e.Directory, other, notify.FileNotifyChangeFileName); err != nil {
+		e.Logger.Error(err)
+		exitError <- err
+		return
+	}
+	defer func() {
+		notify.Stop(other)
+		close(other)
+	}()
 
 	r := regexp.MustCompile(e.FilePattern)
 
@@ -62,6 +76,7 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 			e.Logger.Info("cancel called in filewatcher ...")
 			return
 		case event := <-create:
+			e.Logger.Info(event)
 			e.Logger.Infof("create event detected: %s", event)
 			if directory.IsExists(event.Path()) {
 				e.Logger.Info("event was directory, skip and wait next ...")
@@ -89,9 +104,10 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 				break
 			}
 			current = fi
-		case event := <-c:
+		case event := <-fileCreate:
+			e.Logger.Info(event)
 			if !useFileEvent {
-				e.Logger.Infof("file event detected but skip: %s", event)
+				e.Logger.Infof("file create event detected but skip: %s", event)
 				break
 			}
 			e.Logger.Infof("file event detected: %s", event)
@@ -143,6 +159,8 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 					current = fi
 				}
 			}
+		case event := <-other:
+			e.Logger.Infof("other", event)
 		}
 	}
 }
