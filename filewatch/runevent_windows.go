@@ -17,13 +17,6 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 
 	defer e.Logger.Info("exit file event Watcher runEvent ...")
 
-	// initialize existing symlink
-	err := e.initSymlink(e.Directory, e.FilePattern, e.Dest)
-	if err != nil {
-		exitError <- err
-		return
-	}
-
 	// Set up a watchpoint listening on events
 	// Dispatch each create events separately to channel.
 	e.Logger.Infof("create watcher for %s ...", e.Directory)
@@ -38,6 +31,13 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 		close(fileCreate)
 	}()
 
+	// initialize existing symlink
+	err := e.initSymlink(e.Directory, e.FilePattern, e.Dest)
+	if err != nil {
+		exitError <- err
+		return
+	}
+
 	r := regexp.MustCompile(e.FilePattern)
 
 	// monitor handler
@@ -48,23 +48,22 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 			e.Logger.Info("cancel called in filewatcher ...")
 			return
 		case ei := <-fileCreate:
-			e.Logger.Info("file event %s", ei)
 			source := ei.Path()
 			fileName := filepath.Base(source)
-			if !r.MatchString(fileName) {
-				e.Logger.Infof("event filename was not target, skip and wait next ...")
-				break
-			}
 			switch ei.Event() {
 			case notify.FileActionAdded:
-				e.Logger.Info("file action added event, checking file exists ...")
+				e.Logger.Info("file action added event, checking file exists. %s ...", ei)
 				fi, err := os.Stat(source)
 				if err != nil {
-					e.Logger.Errorf("error happen when checking %s. %s", source, err)
+					e.Logger.Errorf("file not found %s, detail: %s ...", source, err)
+					break
+				}
+				if !r.MatchString(fileName) {
+					e.Logger.Infof("filename was not target, skip and wait next ...")
 					break
 				}
 				if fileName == e.SymlinkName {
-					e.Logger.Infof("event filename was same as symlink, skip and wait next ...")
+					e.Logger.Infof("filename was same as symlink, skip and wait next ...")
 					break
 				}
 				// replace symlink to generated file = latest
@@ -76,14 +75,18 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 				}
 				current = fi
 			case notify.FileActionRenamedNewName:
-				e.Logger.Info("file action added event, checking file exists ...")
+				e.Logger.Info("file action added event, checking file exists. %s ...", ei)
 				fi, err := os.Stat(source)
 				if err != nil {
-					e.Logger.Errorf("error happen when checking %s. %s", source, err)
+					e.Logger.Errorf("file not found %s, detail: %s ...", source, err)
+					break
+				}
+				if !r.MatchString(fileName) {
+					e.Logger.Infof("filename was not target, skip and wait next ...")
 					break
 				}
 				if fileName == e.SymlinkName {
-					e.Logger.Infof("event filename was same as symlink, skip and wait next ...")
+					e.Logger.Infof("filename was same as symlink, skip and wait next ...")
 					break
 				}
 				// replace symlink to renamed file
@@ -96,6 +99,8 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 					}
 					current = fi
 				}
+			default:
+				e.Logger.Info("event is not in target, wait for next. %s ...", ei)
 			}
 		}
 	}
