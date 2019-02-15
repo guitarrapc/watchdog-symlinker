@@ -78,7 +78,7 @@ loop:
 						Logger:       logger,
 						UseFileEvent: false,
 					}
-					if !e.option.useFileWalk && (runtime.GOOS == "windows" || runtime.GOOS == "linux") {
+					if !e.option.useFileWalk && (runtime.GOOS == "windows") {
 						go h.RunEvent(ctx, exit, exitError)
 					} else {
 						go h.Run(ctx, exit, exitError)
