@@ -38,7 +38,7 @@ func (e *fileWatcher) run(ctx context.Context, exit chan<- struct{}, exitError c
 	}
 
 	// loop until target directory found
-	var directories []string
+	var dirs []string
 	pattern := regexp.MustCompile(e.directoryPattern)
 	t := time.NewTicker(3 * time.Second)
 	defer t.Stop()
@@ -49,21 +49,21 @@ loop:
 		case <-t.C:
 			// child only
 			logger.Infof("walking directories in %s ...", basePath)
-			directories, err = directory.Dirwalk(basePath)
+			dirs, err = directory.Dirwalk(basePath)
 			if err != nil {
 				logger.Error(err)
 				logger.Info("retrying to find target directory check ...")
 				break
 			}
 			// TODO: bad knowhow, should fix.
-			if runtime.GOOS == "windows" && len(directories) == 0 {
+			if runtime.GOOS == "windows" && len(dirs) == 0 {
 				logger.Infof("no child directories found in %s, add basePath to monitoring target ...", basePath)
-				directories = append(directories, basePath)
+				dirs = append(dirs, basePath)
 			}
 
 			// check each directory
 			logger.Infof("matching directories with pattern %s ...", pattern.String())
-			for _, directory := range directories {
+			for _, directory := range dirs {
 				dir := directory
 				isMatch := pattern.MatchString(dir)
 				logger.Infof("(%s) %s", strconv.FormatBool(isMatch), dir)
