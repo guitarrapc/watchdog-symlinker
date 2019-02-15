@@ -47,7 +47,10 @@ loop:
 	for {
 		select {
 		case <-t.C:
-			// child only
+			// target directories MUST sorted as [parent -> child] order.
+			// This is due to restriction of notify package.
+			//
+			// walk to get childs
 			logger.Infof("walking directories in %s ...", basePath)
 			dirs, err = directory.Dirwalk(basePath)
 			if err != nil {
@@ -55,11 +58,8 @@ loop:
 				logger.Info("retrying to find target directory check ...")
 				break
 			}
-			// TODO: bad knowhow, should fix.
-			if runtime.GOOS == "windows" && len(dirs) == 0 {
-				logger.Infof("no child directories found in %s, add basePath to monitoring target ...", basePath)
-				dirs = append(dirs, basePath)
-			}
+			// pretend basepath. (DO NOT APPEND TO LAST -> notify must pass parent before watch child)
+			dirs = append([]string{basePath}, dirs...)
 
 			// check each directory
 			logger.Infof("matching directories with pattern %s ...", pattern.String())
