@@ -40,7 +40,7 @@ combination of install and start service.
 watchdog-symlinker.exe -c install -f ^.*.log$ -d C:/Users/guitarrapc/Downloads/watchdog/logfiles -s current.log && watchdog-symlinker.exe -c start
 ```
 
-#### Commands
+### Samples
 
 Install Service (with arguments)
 
@@ -66,29 +66,26 @@ Uninstall Service
 watchdog-symlinker.exe -c uninstall
 ```
 
-## build
-
-### docker build
-
-```shell
-docker build -t watchdog-symlinker .
-```
-
-### get binary on local
-
-```shell
-go get -u github.com/golang/dep/cmd/dep
-dep ensure
-go build
-```
-
-## Customization
+## Customize
 
 You can customize behaiviour with cli arguments.
 
+### File Watcher method
+
+on Windows, default will use file event with `rjeczalik/notify`, but you can change it's behaiviour not to use File Event.
+use `--useFileWalk` to use event raise via `radovskyb/watcher`. 
+
+other platform will use `useFileWalk` as default.
+
+NOTICE: `--useFileWalk` may cause high cpu than file event on directory which contains large number of files.
+
+```shell
+watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --useFileWalk
+```
+
 ### Control httphealthcheck
 
-httphealtcheck is default enabled on `127.0.0.1:12250`.
+httphealtcheck is enabled by default on `127.0.0.1:12250`.
 
 use `--healthcheckHttpDisabled` to disable healthcheck.
 
@@ -104,7 +101,7 @@ watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/l
 
 ### Control statsdhealthcheck
 
-datadog statsdhealtcheck is default enabled on `127.0.0.1:8125`.
+datadog statsdhealtcheck is enabled by default on `127.0.0.1:8125`.
 
 use `--healthcheckStatsdDisabled` to disable healthcheck.
 
@@ -116,6 +113,22 @@ use `--healthcheckStatsdAddr` to change statsdhealthcheck waitinig addr. sample 
 
 ```shell
 watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --healthcheckStatsdAddr 127.0.0.1:8127
+```
+
+## build
+
+### docker build
+
+```shell
+docker build -t watchdog-symlinker .
+```
+
+### get binary on local
+
+```shell
+go get -u github.com/golang/dep/cmd/dep
+dep ensure
+go build
 ```
 
 ## Lint
