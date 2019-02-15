@@ -47,6 +47,7 @@ loop:
 	for {
 		select {
 		case <-t.C:
+			// child only
 			logger.Infof("walking directories in %s ...", basePath)
 			directories, err = directory.Dirwalk(basePath)
 			if err != nil {
@@ -54,21 +55,26 @@ loop:
 				logger.Info("retrying to find target directory check ...")
 				break
 			}
-			directories = append(directories, basePath)
+			// TODO: bad knowhow, should fix.
+			if runtime.GOOS == "windows" && len(directories) == 0 {
+				logger.Infof("no child directories found in %s, add basePath to monitoring target ...", basePath)
+				directories = append(directories, basePath)
+			}
 
 			// check each directory
 			logger.Infof("matching directories with pattern %s ...", pattern.String())
 			for _, directory := range directories {
-				isMatch := pattern.MatchString(directory)
-				logger.Infof("(%s) %s", strconv.FormatBool(isMatch), directory)
+				dir := directory
+				isMatch := pattern.MatchString(dir)
+				logger.Infof("(%s) %s", strconv.FormatBool(isMatch), dir)
 				if isMatch {
-					d := path.Join(directory, e.symlinkName)
+					d := path.Join(dir, e.symlinkName)
 					logger.Infof("start checking %s ...", d)
 					h := filewatch.Handler{
 						Dest:         d,
 						FilePattern:  e.option.filePattern,
 						SymlinkName:  e.symlinkName,
-						Directory:    directory,
+						Directory:    dir,
 						Logger:       logger,
 						UseFileEvent: false,
 					}
