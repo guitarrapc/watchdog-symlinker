@@ -75,7 +75,7 @@ func (e *Handler) RunEvent(ctx context.Context, exit chan<- struct{}, exitError 
 				}
 				current = fi
 			case notify.FileActionRenamedNewName:
-				e.Logger.Info("file action added event, checking file exists. %s ...", ei)
+				e.Logger.Info("file action rename event, checking file exists. %s ...", ei)
 				fi, err := os.Stat(source)
 				if err != nil {
 					e.Logger.Errorf("file not found %s, detail: %s ...", source, err)
