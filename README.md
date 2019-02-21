@@ -1,3 +1,5 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/9dk6i7v54p958x66?svg=true)](https://ci.appveyor.com/project/guitarrapc/watchdog-symlinker)
+
 ## How to run
 
 ### Help
