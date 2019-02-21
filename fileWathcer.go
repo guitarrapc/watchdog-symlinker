@@ -4,7 +4,6 @@ import (
 	"context"
 	"path"
 	"regexp"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -78,10 +77,10 @@ loop:
 						Logger:       logger,
 						UseFileEvent: false,
 					}
-					if !e.option.useFileWalk && (runtime.GOOS == "windows") {
-						go h.RunEvent(ctx, exit, exitError)
-					} else {
+					if e.option.useFileWalk {
 						go h.Run(ctx, exit, exitError)
+					} else {
+						go h.RunEvent(ctx, exit, exitError)
 					}
 					found = true
 				}
