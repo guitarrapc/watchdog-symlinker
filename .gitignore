@@ -19,3 +19,6 @@
 
 # vscode
 debug
+
+# binary
+watchdog-symlinker
