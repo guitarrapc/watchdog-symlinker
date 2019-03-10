@@ -10,11 +10,11 @@ LDFLAGS := -ldflags="-s -w -X \"main.Version=$(VERSION)\" -X \"main.Revision=$(R
 all: setup test build
 
 setup:
-	which dep
-	dep ensure
+	go mod download
 
 test:
     # go test -v ./..
+	go test
 	golangci-lint run
 
 build:
