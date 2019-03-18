@@ -119,6 +119,12 @@ watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/l
 
 ## build
 
+This repo using go modules, please set `GO111MODULE=on` to build.
+
+```bash
+export GO111MODULE=on
+```
+
 ### docker build
 
 ```shell
@@ -128,17 +134,24 @@ docker build -t watchdog-symlinker .
 ### get binary on local
 
 ```shell
-go get -u github.com/golang/dep/cmd/dep
-dep ensure
 go build
 ```
 
 ## Lint
 
-install lint.
+install lint at none repo path with temporary remove `GO111MODULE=on`.
 
 ```shell
+# Windows
+# set GO111MODULE=
+unset GO111MODULE
 go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+```
+
+update package.
+
+```shell
+go build
 ```
 
 run lint.
