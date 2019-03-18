@@ -41,6 +41,8 @@ func main() {
 	flag.StringVar(&statsdhealthcheck.addr, "healthcheckStatsdAddr", "127.0.0.1:8125", "specify statsd healthcheck waiting host:port.")
 	flag.Parse()
 	if *command == "" && (filewatcher.option.filePattern == "" || filewatcher.directoryPattern == "" || filewatcher.symlinkName == "") {
+		log.Println("version", Version)
+		log.Println("revision", Revision)
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
