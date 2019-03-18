@@ -18,7 +18,6 @@ before_build:
   - set GOARCH=%_GOARCH%
 
 build_script:
-  - dep ensure
   - go build
   - 7z a "watchdog-symlinker_%GOOS%_%GOARCH%_%APPVEYOR_BUILD_VERSION%.zip" "%APPVEYOR_BUILD_FOLDER%/watchdog-symlinker*"
 
