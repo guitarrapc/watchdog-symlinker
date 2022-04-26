@@ -1,4 +1,4 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/9dk6i7v54p958x66?svg=true)](https://ci.appveyor.com/project/guitarrapc/watchdog-symlinker)
+[![Go Build](https://github.com/guitarrapc/watchdog-symlinker/actions/workflows/go-build.yaml/badge.svg)](https://github.com/guitarrapc/watchdog-symlinker/actions/workflows/go-build.yaml) [![Release](https://github.com/guitarrapc/watchdog-symlinker/actions/workflows/release.yaml/badge.svg)](https://github.com/guitarrapc/watchdog-symlinker/actions/workflows/release.yaml)
 
 ## How to run
 
