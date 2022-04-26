@@ -13,7 +13,7 @@ setup:
 	go mod download
 
 update:
-	go get
+	go get -t -u ./...
 
 test:
     # go test -v ./..
