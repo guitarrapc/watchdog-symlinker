@@ -25,13 +25,14 @@ pflag: help requested
 minimum configuration.
 
 ```shell
-watchdog-symlinker.exe -f ^.*.log$ -d C:/Users/guitarrapc/Downloads/watchdog/logfiles -s current.log
+mkdir C:/watchdog/logfiles
+watchdog-symlinker.exe -f ^.*.log$ -d C:/watchdog/logfiles -s current.log
 ```
 
 monitor until folder generated.
 
 ```shell
-watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles/fugafuga/hogemoge.*/fugafuga" -s current.log
+watchdog-symlinker.exe -f ^.*.log$ -d "^C:/watchdog/logfiles/fugafuga/hogemoge.*/fugafuga" -s current.log
 ```
 
 ### Windows Service
@@ -39,7 +40,7 @@ watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/l
 combination of install and start service.
 
 ```shell
-watchdog-symlinker.exe -c install -f ^.*.log$ -d C:/Users/guitarrapc/Downloads/watchdog/logfiles -s current.log && watchdog-symlinker.exe -c start
+watchdog-symlinker.exe -c install -f ^.*.log$ -d C:/watchdog/logfiles -s current.log && watchdog-symlinker.exe -c start
 ```
 
 ### Samples
@@ -47,7 +48,7 @@ watchdog-symlinker.exe -c install -f ^.*.log$ -d C:/Users/guitarrapc/Downloads/w
 Install Service (with arguments)
 
 ```shell
-watchdog-symlinker.exe -c install -f ^.*.log$ -d C:/Users/guitarrapc/Downloads/watchdog/logfiles -s current.log
+watchdog-symlinker.exe -c install -f ^.*.log$ -d C:/watchdog/logfiles -s current.log
 ```
 
 Start Service
@@ -75,14 +76,14 @@ You can customize behaiviour with cli arguments.
 ### File Watcher method
 
 on Windows, default will use file event with `rjeczalik/notify`, but you can change it's behaiviour not to use File Event.
-use `--useFileWalk` to use event raise via `radovskyb/watcher`. 
+use `--useFileWalk` to use event raise via `radovskyb/watcher`.
 
 other platform will use `useFileWalk` as default.
 
 NOTICE: `--useFileWalk` may cause high cpu than file event on directory which contains large number of files.
 
 ```shell
-watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --useFileWalk
+watchdog-symlinker.exe -f ^.*.log$ -d "^C:/watchdog/logfiles" -s current.log --useFileWalk
 ```
 
 ### Control httphealthcheck
@@ -92,13 +93,13 @@ httphealtcheck is enabled by default on `127.0.0.1:12250`.
 use `--healthcheckHttpDisabled` to disable healthcheck.
 
 ```shell
-watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --healthcheckHttpDisabled
+watchdog-symlinker.exe -f ^.*.log$ -d "^C:/watchdog/logfiles" -s current.log --healthcheckHttpDisabled
 ```
 
 use `--healthcheckHttpAddr` to change httphealthcheck waitinig addr. sample will change to `0.0.0.0:8080`
 
 ```shell
-watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --healthcheckHttpAddr 0.0.0.0:8080
+watchdog-symlinker.exe -f ^.*.log$ -d "^C:/watchdog/logfiles" -s current.log --healthcheckHttpAddr 0.0.0.0:8080
 ```
 
 ### Control statsdhealthcheck
@@ -108,13 +109,13 @@ datadog statsdhealtcheck is enabled by default on `127.0.0.1:8125`.
 use `--healthcheckStatsdDisabled` to disable healthcheck.
 
 ```shell
-watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --healthcheckStatsdDisabled
+watchdog-symlinker.exe -f ^.*.log$ -d "^C:/watchdog/logfiles" -s current.log --healthcheckStatsdDisabled
 ```
 
 use `--healthcheckStatsdAddr` to change statsdhealthcheck waitinig addr. sample will change to `127.0.0.1:8127`
 
 ```shell
-watchdog-symlinker.exe -f ^.*.log$ -d "^C:/Users/guitarrapc/Downloads/watchdog/logfiles" -s current.log --healthcheckStatsdAddr 127.0.0.1:8127
+watchdog-symlinker.exe -f ^.*.log$ -d "^C:/watchdog/logfiles" -s current.log --healthcheckStatsdAddr 127.0.0.1:8127
 ```
 
 ## build

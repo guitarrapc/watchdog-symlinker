@@ -12,6 +12,9 @@ all: setup test build
 setup:
 	go mod download
 
+update:
+	go get
+
 test:
     # go test -v ./..
 	go test
@@ -19,3 +22,6 @@ test:
 
 build:
 	go build -o app
+
+build-windows:
+	go build -o watchdog-symlinker.exe
