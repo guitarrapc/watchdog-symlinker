@@ -3,7 +3,7 @@ name: Go Build
 on:
   workflow_dispatch:
   push:
-    branches: ["main", "feature/cicd"]
+    branches: ["main"]
   pull_request:
     branches: ["main"]
 
